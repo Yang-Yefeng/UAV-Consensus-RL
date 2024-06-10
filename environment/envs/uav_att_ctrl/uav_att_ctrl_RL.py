@@ -273,9 +273,9 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 				  new_att_ctrl_param: fntsmc_param = None,		# 是否有新的控制器参数
 				  outer_param: list = None						# 是否有外部参数输入
 				  ):
-		self.generate_random_att_trajectory(is_random=random_att_trajectory, yaw_fixed=yaw_fixed, outer_param=outer_param)
 		self.reset_uav()
 		self.collector_reset()
+		self.generate_random_att_trajectory(is_random=random_att_trajectory, yaw_fixed=yaw_fixed, outer_param=outer_param)
 		
 		self.reward = 0.
 		self.sum_reward = 0.

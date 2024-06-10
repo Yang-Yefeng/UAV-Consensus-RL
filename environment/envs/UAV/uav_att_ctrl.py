@@ -17,13 +17,13 @@ class uav_att_ctrl(UAV):
 		self.dot2_ref = np.zeros(3)
 		
 		'''参考轨迹记录'''
-		self.ref_att_amplitude = None
-		self.ref_att_period = None
-		self.ref_att_bias_a = None
-		self.ref_att_bias_phase = None
-		self.rho_d_all = None
-		self.dot_rho_d_all = None
-		self.dot2_rho_d_all = None
+		self.ref_att_amplitude = np.zeros(3)
+		self.ref_att_period = np.zeros(3)
+		self.ref_att_bias_a = np.zeros(3)
+		self.ref_att_bias_phase = np.zeros(3)
+		self.rho_d_all = np.atleast_2d([])
+		self.dot_rho_d_all = np.atleast_2d([])
+		self.dot2_rho_d_all = np.atleast_2d([])
 		'''参考轨迹记录'''
 	
 	def att_control(self, ref: np.ndarray, dot_ref: np.ndarray, dot2_ref: np.ndarray, att_only: bool = True):
@@ -120,13 +120,13 @@ class uav_att_ctrl(UAV):
 			self.generate_ref_att_trajectory(self.ref_att_amplitude, self.ref_att_period, self.ref_att_bias_a, self.ref_att_bias_phase))
 	
 	def controller_reset(self):
-		self.ref_att_amplitude = None
-		self.ref_att_period = None
-		self.ref_att_bias_a = None
-		self.ref_att_bias_phase = None
-		self.rho_d_all = None
-		self.dot_rho_d_all = None
-		self.dot2_rho_d_all = None
+		self.ref_att_amplitude = np.zeros(3)
+		self.ref_att_period = np.zeros(3)
+		self.ref_att_bias_a = np.zeros(3)
+		self.ref_att_bias_phase = np.zeros(3)
+		self.rho_d_all = np.atleast_2d([])
+		self.dot_rho_d_all = np.atleast_2d([])
+		self.dot2_rho_d_all = np.atleast_2d([])
 		self.att_ctrl.fntsmc_reset()
 	
 	def controller_reset_with_new_param(self, new_att_param: fntsmc_param = None):

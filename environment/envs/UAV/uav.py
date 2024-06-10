@@ -114,10 +114,11 @@ class UAV:
 		
 		self.phi_max = deg2rad(80)
 		self.theta_max = deg2rad(80)
-		self.psi_max = deg2rad(90)
+		self.psi_max = deg2rad(120)
+		
 		self.phi_min = -deg2rad(80)
 		self.theta_min = -deg2rad(80)
-		self.psi_min = -deg2rad(90)
+		self.psi_min = -deg2rad(120)
 		'state limitation'
 	
 	def is_att_out(self):

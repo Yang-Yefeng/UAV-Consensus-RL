@@ -299,3 +299,6 @@ class data_collector:
         # plt.xlabel('time(s)')
         # # plt.ylim((-4, 4))
         # plt.title('1st_error dz')
+    
+    def reset(self):
+        self.index = 0

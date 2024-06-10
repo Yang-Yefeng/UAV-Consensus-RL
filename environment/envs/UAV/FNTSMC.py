@@ -81,3 +81,19 @@ class fntsmc:
 		u2 = (self.k1 + self.k2 * self.alpha1 * self.sig(e_eta, self.alpha1 - 1)) * dot_e_eta
 		u3 = obs + self.k3 * np.tanh(5 * self.s) + self.k4 * self.sig(self.s, self.alpha2)
 		self.control_out = -(u1 + u2 + u3)
+	
+	def fntsmc_reset(self):
+		self.s = np.zeros(self.dim)
+	
+	def fntsmc_reset_with_new_param(self, param:fntsmc_param):
+		self.k1 = param.k1
+		self.k2 = param.k2
+		self.k3 = param.k3
+		self.k4 = param.k4
+		self.alpha1 = param.alpha1
+		self.alpha2 = param.alpha2
+		self.dim = param.dim
+		self.dt = param.dt
+		
+		self.s = np.zeros(self.dim)
+	

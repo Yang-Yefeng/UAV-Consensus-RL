@@ -1,0 +1,19 @@
+stage one:
+    'gamma': 0.99,
+    'K_epochs': 50,
+    'eps_clip': 0.2,
+    'buffer_size': int(env.time_max / env.dt) * 2,
+    'state_dim': env_test.state_dim,
+    'action_dim': env_test.action_dim,
+    'a_lr': 1e-4,
+    'c_lr': 1e-3,
+    'set_adam_eps': True,
+    'lmd': 0.95,
+    'use_adv_norm': True,
+    'mini_batch_size': 64,
+    'entropy_coef': 0.01,
+    'use_grad_clip': True,
+    'use_lr_decay': True,
+    'max_train_steps': int(5e6),
+    'using_mini_batch': False
+

@@ -1,6 +1,4 @@
-import os, sys, datetime, time, torch
-
-import cv2 as cv
+import os, sys, datetime, time
 import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
@@ -12,7 +10,6 @@ from environment.envs.UAV.FNTSMC import fntsmc_param
 from environment.envs.UAV.ref_cmd import *
 
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
-# from algorithm.policy_base.Proximal_Policy_Optimization2 import PPOActor_Gaussian, PPOCritic
 
 from utils.classes import *
 from utils.functions import *
@@ -84,7 +81,7 @@ class PPOActor_Gaussian(nn.Module):
                  action_dim: int = 3,
                  a_min: np.ndarray = 0.1 * np.ones(3),
                  a_max: np.ndarray = 100 * np.ones(3),
-                 init_std: float = 0.5,
+                 init_std: float = 0.7,
                  use_orthogonal_init: bool = True):
         super(PPOActor_Gaussian, self).__init__()
         self.fc1 = nn.Linear(state_dim, 64)
@@ -185,9 +182,9 @@ if __name__ == '__main__':
     os.mkdir(simulationPath)
     
     TRAIN = True  # 直接训练
-    RETRAIN = False  # 基于之前的训练结果重新训练
+    RETRAIN = True  # 基于之前的训练结果重新训练
     TEST = not TRAIN
-    HEHE_FLAG = False
+    HEHE_FLAG = True
     
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
     reset_att_ctrl_param('zero')
@@ -200,13 +197,13 @@ if __name__ == '__main__':
     reward_norm = Normalization(shape=1)
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     ppo_msg = {'gamma': 0.99,
-               'K_epochs': 50,
+               'K_epochs': 10,
                'eps_clip': 0.2,
                'buffer_size': int(env.time_max / env.dt) * 2,
                'state_dim': env_test.state_dim,
                'action_dim': env_test.action_dim,
-               'a_lr': 1e-4,
-               'c_lr': 1e-3,
+               'a_lr': 1e-5,
+               'c_lr': 1e-4,
                'set_adam_eps': True,
                'lmd': 0.95,
                'use_adv_norm': True,
@@ -229,7 +226,7 @@ if __name__ == '__main__':
                                              action_dim=env.action_dim,
                                              a_min=np.array(env.action_range)[:, 0],
                                              a_max=np.array(env.action_range)[:, 1],
-                                             init_std=0.7,  # 第2次学是 0.3
+                                             init_std=0.3,  # 第2次学是 0.3
                                              use_orthogonal_init=True),
                      critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
         agent.PPO2_info()
@@ -237,10 +234,10 @@ if __name__ == '__main__':
         if RETRAIN:
             print('RELOADING......')
             '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
-            optPath = os.path.dirname(os.path.abspath(__file__)) + '/../datasave/nets/temp/'
-            agent.actor.load_state_dict(torch.load(optPath + 'actor_trainNum_300'))  # 测试时，填入测试actor网络
-            # agent.critic.load_state_dict(torch.load(optPath + 'critic_trainNum_300'))
-            agent.critic.init(True)
+            optPath = os.path.dirname(os.path.abspath(__file__)) + '/../datasave/nets/att_temp1/'
+            agent.actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
+            agent.critic.load_state_dict(torch.load(optPath + 'critic'))
+            # agent.critic.init(True)
             '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
         
         while True:
@@ -255,7 +252,7 @@ if __name__ == '__main__':
                     # if t_epoch % 10 == 0 and t_epoch > 0:
                     print('Sumr:  ', env.sum_reward)
                     sumr_list.append(env.sum_reward)
-                    env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+                    env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
                 else:
                     env.current_state = env.next_state.copy()  # 此时相当于时间已经来到了下一拍，所以 current 和 next 都得更新
                     s = env.current_state_norm(env.current_state, update=True)

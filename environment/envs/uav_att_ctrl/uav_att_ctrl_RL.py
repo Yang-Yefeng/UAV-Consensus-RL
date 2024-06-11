@@ -169,7 +169,7 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 				_u_psi = -4 * np.pi ** 2 * self.Q_att[2]
 			
 			u_extra = _n * (_u_phi + _u_theta + _u_psi + u_pqr + u_acc + u_att)
-		
+			# u_extra = _n * (_u_phi + _u_theta + _u_psi + u_pqr + u_acc)
 		self.reward = u_att + u_pqr + u_acc + u_extra
 		self.sum_reward += self.reward
 	

@@ -1,0 +1,6 @@
+**/__pycache__
+log/*
+.idea/
+*.mp4
+*.avi
+*.gif

@@ -16,4 +16,3 @@ stage one:
     'use_lr_decay': True,
     'max_train_steps': int(5e6),
     'using_mini_batch': False
-

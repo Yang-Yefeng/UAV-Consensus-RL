@@ -216,30 +216,30 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 		self.next_state = self.get_state()
 		self.get_reward()
 	
-	def get_param_from_actor(self, action_from_actor: np.ndarray):
+	def get_param_from_actor(self, action_from_actor: np.ndarray, hehe_flag: bool = True):
 		"""
 		@param action_from_actor:
 		@return:
 		"""
 		if np.min(action_from_actor) < 0:
 			print('ERROR!!!!')
-		for i in range(3):	# 分别对应 k1: 0 1 2, k2: 3 4 5, k4: 6 7 8
-			if action_from_actor[i] > 0:
-				self.att_ctrl.k1[i] = action_from_actor[i]
-			if action_from_actor[i + 3] > 0:
-				self.att_ctrl.k2[i] = action_from_actor[i + 3]
-			if action_from_actor[i + 6] > 0:
-				self.att_ctrl.k4[i] = action_from_actor[i + 6]
-		# for i in range(3):
-		# 	if action_from_actor[i] > 0:
-		# 		self.att_ctrl.k1[i] = 10 * action_from_actor[i]  # k11 k12 k13
-		# 	if action_from_actor[i + 3] > 0:
-		# 		self.att_ctrl.k2[i] = action_from_actor[i + 3] / 10  # k21 k22 k23
-		# if action_from_actor[6] > 0:
-		# 	self.att_ctrl.gamma[:] = action_from_actor[6]  # gamma gamma gamma
-		# if action_from_actor[7] > 0:
-		# 	self.att_ctrl.lmd[:] = action_from_actor[7]  # lmd lmd lmd
-	
+		if hehe_flag:
+			for i in range(3):  # 分别对应 k1: 0 1 2, k2: 3 4 5, k4: 6 7 8
+				if action_from_actor[i] > 0:
+					self.att_ctrl.k1[i] = action_from_actor[i] * 5
+				if action_from_actor[i + 3] > 0:
+					self.att_ctrl.k2[i] = action_from_actor[i + 3]
+				if action_from_actor[i + 6] > 0:
+					self.att_ctrl.k4[i] = action_from_actor[i + 6] * 5
+		else:
+			for i in range(3):	# 分别对应 k1: 0 1 2, k2: 3 4 5, k4: 6 7 8
+				if action_from_actor[i] > 0:
+					self.att_ctrl.k1[i] = action_from_actor[i]
+				if action_from_actor[i + 3] > 0:
+					self.att_ctrl.k2[i] = action_from_actor[i + 3]
+				if action_from_actor[i + 6] > 0:
+					self.att_ctrl.k4[i] = action_from_actor[i + 6]
+		
 	def save_state_norm(self, path, msg=None):
 		data = {
 			'cur_n': self.current_state_norm.running_ms.n * np.ones(self.state_dim),

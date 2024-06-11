@@ -82,8 +82,8 @@ class PPOActor_Gaussian(nn.Module):
     def __init__(self,
                  state_dim: int = 3,
                  action_dim: int = 3,
-                 a_min: np.ndarray = np.zeros(3),
-                 a_max: np.ndarray = np.ones(3),
+                 a_min: np.ndarray = 0.1 * np.ones(3),
+                 a_max: np.ndarray = 100 * np.ones(3),
                  init_std: float = 0.5,
                  use_orthogonal_init: bool = True):
         super(PPOActor_Gaussian, self).__init__()
@@ -187,6 +187,7 @@ if __name__ == '__main__':
     TRAIN = True  # 直接训练
     RETRAIN = False  # 基于之前的训练结果重新训练
     TEST = not TRAIN
+    HEHE_FLAG = False
     
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
     reset_att_ctrl_param('zero')
@@ -254,12 +255,12 @@ if __name__ == '__main__':
                     # if t_epoch % 10 == 0 and t_epoch > 0:
                     print('Sumr:  ', env.sum_reward)
                     sumr_list.append(env.sum_reward)
-                    env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+                    env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
                 else:
                     env.current_state = env.next_state.copy()  # 此时相当于时间已经来到了下一拍，所以 current 和 next 都得更新
                     s = env.current_state_norm(env.current_state, update=True)
                     a, a_log_prob = agent.choose_action(s)
-                    env.get_param_from_actor(a)
+                    env.get_param_from_actor(a, hehe_flag=HEHE_FLAG)
                     
                     rhod = env.rho_d_all[env.n]
                     dot_rhod = env.dot_rho_d_all[env.n]
@@ -301,32 +302,30 @@ if __name__ == '__main__':
                 for i in range(n):
                     reset_att_ctrl_param('zero')
                     env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
-                    test_r = 0.
                     while not env_test.is_terminal:
                         _a = agent.evaluate(env.current_state_norm(env_test.current_state, update=False))
-                        env_test.get_param_from_actor(_a)  # 将控制器参数更新
+                        env_test.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
                         _rhod = env_test.rho_d_all[env_test.n]
                         _dot_rhod = env_test.dot_rho_d_all[env_test.n]
                         _dot2_rhod = env_test.dot2_rho_d_all[env_test.n]
                         _torque = env_test.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
                         env_test.step_update([_torque[0], _torque[1], _torque[2]])
-                        test_r += env_test.reward
                         
                         env_test.visualization()
                     test_num += 1
-                    test_reward.append(test_r)
-                    print('    Evaluating %.0f | Reward: %.2f ' % (i, test_r))
+                    test_reward.append(env_test.sum_reward)
+                    print('    Evaluating %.0f | Reward: %.2f ' % (i, env_test.sum_reward))
                 pd.DataFrame({'reward': test_reward}).to_csv(simulationPath + 'test_record.csv')
                 pd.DataFrame({'sumr_list': sumr_list}).to_csv(simulationPath + 'sumr_list.csv')
                 print('    Testing finished...')
                 print('    Go back to training...')
             '''4. 每学习 10 次，测试一下'''
             
-            '''5. 每学习 100 次，减小一次探索概率'''
+            '''5. 每学习 250 次，减小一次探索概率'''
             if t_epoch % 250 == 0 and t_epoch > 0:
                 if agent.actor.std > 0.1:
                     agent.actor.std -= 0.05
-            '''5. 每学习 100 次，减小一次探索概率'''
+            '''5. 每学习 250 次，减小一次探索概率'''
             
             '''6. 每学习 50 次，保存一下 policy'''
             if t_epoch % 50 == 0 and t_epoch > 0:

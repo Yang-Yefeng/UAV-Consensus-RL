@@ -155,17 +155,20 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 			'''
 				给出界时刻的位置、速度、输出误差的累计
 			'''
-			_n = (self.time_max - self.time) / self.dt
+			_n = (self.time_max - self.time) / self.dt - 1
 			'''这里把三个姿态的累计惩罚分开'''
 			_u_phi = _u_theta = _u_psi = 0.
 			if self.phi > self.phi_max or self.phi < self.phi_min:
+				# _u_phi = -(_e_att[0] ** 2 * self.Q_att[0] + _e_pqr[0] ** 2 * self.Q_pqr[0])
 				_u_phi = -np.pi ** 2 * self.Q_att[0]
 			if self.theta > self.theta_max or self.theta < self.theta_min:
+				# _u_theta = -(_e_att[1] ** 2 * self.Q_att[1] + _e_pqr[1] ** 2 * self.Q_pqr[1])
 				_u_theta = -np.pi ** 2 * self.Q_att[1]
 			if self.psi > self.psi_max or self.psi < self.psi_min:
-				_u_theta = -4 * np.pi ** 2 * self.Q_att[2]
+				# _u_psi = -(_e_att[2] ** 2 * self.Q_att[2] + _e_pqr[2] ** 2 * self.Q_pqr[2])
+				_u_psi = -4 * np.pi ** 2 * self.Q_att[2]
 			
-			u_extra = _n * (_u_phi + _u_theta + _u_psi + u_pqr + u_acc)
+			u_extra = _n * (_u_phi + _u_theta + _u_psi + u_pqr + u_acc + u_att)
 		
 		self.reward = u_att + u_pqr + u_acc + u_extra
 		self.sum_reward += self.reward

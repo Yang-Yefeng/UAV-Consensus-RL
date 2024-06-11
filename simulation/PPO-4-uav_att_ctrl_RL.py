@@ -244,7 +244,6 @@ if __name__ == '__main__':
         
         while True:
             '''1. 初始化 buffer 索引和累计奖励记录'''
-            sumr = 0.
             buffer_index = 0
             '''1. 初始化 buffer 索引和累计奖励记录'''
             
@@ -253,9 +252,8 @@ if __name__ == '__main__':
                 if env.is_terminal:  # 如果某一个回合结束
                     reset_att_ctrl_param('zero')
                     # if t_epoch % 10 == 0 and t_epoch > 0:
-                    print('Sumr:  ', sumr)
-                    sumr_list.append(sumr)
-                    sumr = 0.
+                    print('Sumr:  ', env.sum_reward)
+                    sumr_list.append(env.sum_reward)
                     env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
                 else:
                     env.current_state = env.next_state.copy()  # 此时相当于时间已经来到了下一拍，所以 current 和 next 都得更新
@@ -269,7 +267,6 @@ if __name__ == '__main__':
                 
                     torque = env.att_control(ref=rhod, dot_ref=dot_rhod, dot2_ref=dot2_rhod, att_only=True)
                     env.step_update([torque[0], torque[1], torque[2]])
-                    sumr += env.reward
                     if env.is_terminal and (env.terminal_flag != 1):
                         success = 1.0
                     else:
@@ -293,13 +290,14 @@ if __name__ == '__main__':
             timestep += ppo_msg['buffer_size']
             agent.learn(timestep, buf_num=1)
             agent.cnt += 1
+            print('~~~~~~~~~~  Training End ~~~~~~~~~~')
             '''3. 开始学习'''
             
             '''4. 每学习 10 次，测试一下'''
             if t_epoch % 10 == 0 and t_epoch > 0:
                 n = 1
-                print('Training pause......')
-                print('Testing...')
+                print('    Training pause......')
+                print('    Testing...')
                 for i in range(n):
                     reset_att_ctrl_param('zero')
                     env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
@@ -317,11 +315,11 @@ if __name__ == '__main__':
                         env_test.visualization()
                     test_num += 1
                     test_reward.append(test_r)
-                    print('   Evaluating %.0f | Reward: %.2f ' % (i, test_r))
+                    print('    Evaluating %.0f | Reward: %.2f ' % (i, test_r))
                 pd.DataFrame({'reward': test_reward}).to_csv(simulationPath + 'test_record.csv')
                 pd.DataFrame({'sumr_list': sumr_list}).to_csv(simulationPath + 'sumr_list.csv')
-                print('   Testing finished...')
-                print('   Go back to training...')
+                print('    Testing finished...')
+                print('    Go back to training...')
             '''4. 每学习 10 次，测试一下'''
             
             '''5. 每学习 100 次，减小一次探索概率'''
@@ -343,4 +341,3 @@ if __name__ == '__main__':
             '''6. 每学习 50 次，保存一下 policy'''
             
             t_epoch += 1
-            print('~~~~~~~~~~  Training End ~~~~~~~~~~')

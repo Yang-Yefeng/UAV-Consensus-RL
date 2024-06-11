@@ -123,15 +123,24 @@ class UAV:
 	
 	def is_att_out(self):
 		_flag = False
-		if (self.phi < self.phi_min + deg2rad(1)) or (self.phi > self.phi_max - deg2rad(1)):
+		if (self.phi < self.phi_min) or (self.phi > self.phi_max):
 			print('Phi OUT!!!!!')
 			_flag = True
-		if (self.theta < self.theta_min + deg2rad(1)) or (self.theta > self.theta_max - deg2rad(1)):
+		if (self.theta < self.theta_min) or (self.theta > self.theta_max):
 			print('Theta OUT!!!!!')
 			_flag = True
-		if (self.psi < self.psi_min + deg2rad(1)) or (self.psi > self.psi_max - deg2rad(1)):
+		if (self.psi < self.psi_min) or (self.psi > self.psi_max):
 			print('Yaw OUT!!!!!')
 			_flag = True
+		# if (self.phi < self.phi_min + deg2rad(1)) or (self.phi > self.phi_max - deg2rad(1)):
+		# 	print('Phi OUT!!!!!')
+		# 	_flag = True
+		# if (self.theta < self.theta_min + deg2rad(1)) or (self.theta > self.theta_max - deg2rad(1)):
+		# 	print('Theta OUT!!!!!')
+		# 	_flag = True
+		# if (self.psi < self.psi_min + deg2rad(1)) or (self.psi > self.psi_max - deg2rad(1)):
+		# 	print('Yaw OUT!!!!!')
+		# 	_flag = True
 		return _flag
 	
 	def ode(self, xx: np.ndarray, dis: np.ndarray):

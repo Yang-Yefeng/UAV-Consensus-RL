@@ -58,8 +58,7 @@ if __name__ == '__main__':
 	
 	while cnt < NUM_OF_SIMULATION:
 		'''1. reset and generate reference signal'''
-		env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=None)
-		
+		env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=None)
 		if cnt % 1 == 0:
 			print('Current:', cnt)
 		

@@ -64,7 +64,7 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 		self.att_image_r = int(0.35 * self.att_w / 3)
 		'''opencv visualization for attitude control'''
 	
-	def draw_att_init_image(self):
+	def draw_init_image(self):
 		x1 = int(self.att_w / 3)
 		x2 = int(2 * self.att_w / 3)
 		y = int(self.att_h / 2) + 15
@@ -91,12 +91,12 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 
 		self.att_image_copy = self.att_image.copy()
 
-	def draw_att(self, ref_att: np.ndarray):
+	def draw_att(self):
 		x1 = int(self.att_w / 3)
 		y = int(self.att_h / 2) + 15
 		c = [(int(x1 / 2), y), (x1 + int(x1 / 2), y), (2 * x1 + int(x1 / 2), y)]
 
-		for _c, _a, _ref_a in zip(c, self.uav_att(), ref_att):
+		for _c, _a, _ref_a in zip(c, self.uav_att(), self.rho_d_all[self.n]):
 			px = _c[0] + int(self.att_image_r * np.cos(np.pi / 2 - _a))
 			py = _c[1] - int(self.att_image_r * np.sin(np.pi / 2 - _a))
 			px2 = _c[0] + int(self.att_image_r * np.cos(np.pi / 2 - _ref_a))
@@ -119,8 +119,12 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 		else:
 			cv.imshow('Attitude', self.att_image)
 			cv.waitKey(1)
-
-
+	
+	def visualization(self):
+		self.att_image = self.att_image_copy.copy()
+		self.draw_att()
+		self.show_att_image(iswait=False)
+	
 	def get_state(self) -> np.ndarray:
 		e_att_ = self.uav_att() - self.ref
 		e_pqr_ = self.uav_dot_att() - self.dot_ref
@@ -288,4 +292,4 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 			self.att_ctrl.fntsmc_reset_with_new_param(new_att_ctrl_param)
 		else:
 			self.att_ctrl.fntsmc_reset()
-		self.draw_att_init_image()
+		self.draw_init_image()

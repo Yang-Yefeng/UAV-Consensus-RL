@@ -297,12 +297,12 @@ if __name__ == '__main__':
             
             '''4. 每学习 10 次，测试一下'''
             if t_epoch % 10 == 0 and t_epoch > 0:
-                n = 5
+                n = 1
                 print('Training pause......')
                 print('Testing...')
                 for i in range(n):
                     reset_att_ctrl_param('zero')
-                    env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+                    env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)     # TODO
                     test_r = 0.
                     while not env_test.is_terminal:
                         _a = agent.evaluate(env.current_state_norm(env_test.current_state, update=False))

@@ -58,8 +58,7 @@ if __name__ == '__main__':
 	
 	while cnt < NUM_OF_SIMULATION:
 		'''1. reset and generate reference signal'''
-		env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=None)
-		env.show_att_image(iswait=True)
+		env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=None)
 		
 		if cnt % 1 == 0:
 			print('Current:', cnt)
@@ -71,11 +70,9 @@ if __name__ == '__main__':
 			dot2_rhod = env.dot2_rho_d_all[env.n]
 			torque = env.att_control(ref=rho_d, dot_ref=dot_rhod, dot2_ref=dot2_rhod, att_only=True)
 			env.step_update(action=torque)
-			# att_ctrl_rl.update(action=torque)
 			
 			env.att_image = env.att_image_copy.copy()
-			env.draw_att(rho_d)
-			env.show_att_image(iswait=False)
+			env.visualization()
 		print(env.sum_reward)
 		cnt += 1
 	

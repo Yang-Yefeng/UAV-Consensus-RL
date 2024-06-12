@@ -78,8 +78,8 @@ if __name__ == '__main__':
 	
 	HEHE_FLAG = True
 	
-	opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good1/'
-	# opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_2/trainNum_200/'
+	# opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good1/'
+	opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_3/trainNum_2650/'
 	
 	env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
 	env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
@@ -108,7 +108,7 @@ if __name__ == '__main__':
 	
 	agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
 	
-	N = 1000
+	N = 5000
 	success = 0
 	fail = 0
 	for i in range(N):

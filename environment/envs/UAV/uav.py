@@ -107,10 +107,19 @@ class UAV:
 		'''control'''
 		
 		'state limitation'
-		self.pos_min = np.array([-10, -10, -10])
-		self.pos_max = np.array([10, 10, 10])
+		self.pos_min = np.array([-6, -6, -6])
+		self.pos_max = np.array([6, 6, 6])
 		self.vel_min = np.array([-10, -10, -10])
 		self.vel_max = np.array([10, 10, 10])
+		
+		self.x_max = self.pos_max[0]
+		self.x_min = self.pos_min[0]
+		self.y_max = self.pos_max[1]
+		self.y_min = self.pos_min[1]
+		self.z_max = self.pos_max[2]
+		self.z_min = self.pos_min[2]
+		
+		self.max_admissible_error = 1.0
 		
 		self.phi_max = deg2rad(80)
 		self.theta_max = deg2rad(80)
@@ -132,15 +141,19 @@ class UAV:
 		if (self.psi < self.psi_min) or (self.psi > self.psi_max):
 			print('Yaw OUT!!!!!')
 			_flag = True
-		# if (self.phi < self.phi_min + deg2rad(1)) or (self.phi > self.phi_max - deg2rad(1)):
-		# 	print('Phi OUT!!!!!')
-		# 	_flag = True
-		# if (self.theta < self.theta_min + deg2rad(1)) or (self.theta > self.theta_max - deg2rad(1)):
-		# 	print('Theta OUT!!!!!')
-		# 	_flag = True
-		# if (self.psi < self.psi_min + deg2rad(1)) or (self.psi > self.psi_max - deg2rad(1)):
-		# 	print('Yaw OUT!!!!!')
-		# 	_flag = True
+		return _flag
+	
+	def is_pos_out(self) -> bool:
+		_flag = False
+		if (self.x < self.x_min - self.max_admissible_error) or (self.x > self.x_max + self.max_admissible_error):
+			# print('XOUT!!!!!')
+			_flag = True
+		if (self.y < self.y_min - self.max_admissible_error) or (self.y > self.y_max + self.max_admissible_error):
+			# print('YOUT!!!!!')
+			_flag = True
+		if (self.z < self.z_min - self.max_admissible_error) or (self.z > self.z_max + self.max_admissible_error):
+			# print('ZOUT!!!!!')
+			_flag = True
 		return _flag
 	
 	def ode(self, xx: np.ndarray, dis: np.ndarray):

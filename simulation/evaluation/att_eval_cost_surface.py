@@ -82,7 +82,6 @@ if __name__ == '__main__':
     HEHE_FLAG = True
 
     opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_2/'
-    # opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_4/trainNum_5200/'
 
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
     env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
@@ -110,27 +109,45 @@ if __name__ == '__main__':
     actor.load_state_dict(torch.load(opt_path + 'actor'))
 
     agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
-
-    N = 1
-    success = 0
-    fail = 0
-    for i in range(N):
-        reset_att_ctrl_param('optimal')
-        p = np.array([[0.6, 0.6, 0.6], [4.5, 4.5, 4.5], [0, 0, 0]])
-        env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p)
-        while not env.is_terminal:
-            _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
-            env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
-            _rhod = env.rho_d_all[env.n]
-            _dot_rhod = env.dot_rho_d_all[env.n]
-            _dot2_rhod = env.dot2_rho_d_all[env.n]
-            _torque = env.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
-            env.step_update([_torque[0], _torque[1], _torque[2]])
-            env.visualization()
+    
+    A_num = 3
+    T_num = 3
+    A = np.linspace(0, deg2rad(70), A_num)
+    T = np.linspace(3,6,T_num)
+    _i = 0
+    
+    cost = np.zeros((A_num * T_num, 4))  # a, t, r1 ,r2
+    for a in A:
+        for t in T:
+            p = np.array([[a, a, a], [t, t, t], [0, 0, 0]])
+            '''1. RL'''
+            reset_att_ctrl_param('zero')
+            env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p)
+            while not env.is_terminal:
+                _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
+                env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
+                _rhod = env.rho_d_all[env.n]
+                _dot_rhod = env.dot_rho_d_all[env.n]
+                _dot2_rhod = env.dot2_rho_d_all[env.n]
+                _torque = env.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
+                env.step_update([_torque[0], _torque[1], _torque[2]])
+            r1 = env.sum_reward
             
-        if env.terminal_flag == 3:  # 角度出界
-            fail += 1
-        else:
-            success += 1
-        print('Evaluating %.0f | Reward: %.2f ' % (i, env.sum_reward))
-    print('Success rate:', success / N)
+            '''2. 传统'''
+            reset_att_ctrl_param('optimal')
+            env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p)
+            while not env.is_terminal:
+                _rhod = env.rho_d_all[env.n]
+                _dot_rhod = env.dot_rho_d_all[env.n]
+                _dot2_rhod = env.dot2_rho_d_all[env.n]
+                _torque = env.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
+                env.step_update([_torque[0], _torque[1], _torque[2]])
+            r2 = env.sum_reward
+            cost[_i, :] = np.array([a, t, r1, r2])
+            _i += 1
+            if _i % 100 == 0:
+                print(_i)
+            # env.visualization()
+    
+    print('Finish...')
+    pd.DataFrame(cost, columns=['A', 'T', 'r1', 'r2']).to_csv('att_cost_surface.csv', sep=',', index=False)

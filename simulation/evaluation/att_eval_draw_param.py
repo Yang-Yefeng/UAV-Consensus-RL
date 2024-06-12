@@ -2,6 +2,7 @@ import os, sys, datetime, time, torch
 
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
@@ -79,14 +80,18 @@ if __name__ == '__main__':
     # simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     # os.mkdir(simulationPath)
 
-    HEHE_FLAG = True
-
     opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_2/'
     # opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_4/trainNum_5200/'
 
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
     env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
-
+    
+    HEHE_FLAG = True
+    if HEHE_FLAG:
+        hehe = np.array([5, 5, 5, 1, 1, 1, 5, 5, 5])
+    else:
+        hehe = np.ones(env.action_dim)
+    
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     ppo_msg = {'gamma': 0.99,
                'K_epochs': 10,
@@ -108,29 +113,50 @@ if __name__ == '__main__':
 
     actor = PPOActor_Gaussian(state_dim=env.state_dim, action_dim=env.action_dim)
     actor.load_state_dict(torch.load(opt_path + 'actor'))
-
     agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
+    opt_param = np.zeros((int(uav_param.time_max / DT), env.action_dim))
 
-    N = 1
-    success = 0
-    fail = 0
+    N = 50
+    cal_param_mean = np.zeros((N, env.action_dim))
     for i in range(N):
-        reset_att_ctrl_param('optimal')
-        p = np.array([[0.6, 0.6, 0.6], [4.5, 4.5, 4.5], [0, 0, 0]])
-        env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p)
+        reset_att_ctrl_param('zero')
+        env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
         while not env.is_terminal:
             _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
             env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
+            opt_param[env.n] = _a * hehe
             _rhod = env.rho_d_all[env.n]
             _dot_rhod = env.dot_rho_d_all[env.n]
             _dot2_rhod = env.dot2_rho_d_all[env.n]
             _torque = env.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
             env.step_update([_torque[0], _torque[1], _torque[2]])
-            env.visualization()
             
-        if env.terminal_flag == 3:  # 角度出界
-            fail += 1
-        else:
-            success += 1
+            # env.visualization()
+
         print('Evaluating %.0f | Reward: %.2f ' % (i, env.sum_reward))
-    print('Success rate:', success / N)
+        row = opt_param.shape[0]
+        p = opt_param[int(0.75 * row): row, :]
+        cal_param_mean[i, :] = np.mean(p, axis=0)
+        
+        # time = np.linspace(0, env.time_max, int(uav_param.time_max / DT))
+        # plt.figure(0)
+        # plt.plot(time, opt_param[:, 0])  # k1 x
+        # plt.plot(time, opt_param[:, 1])  # k1 y
+        # plt.plot(time, opt_param[:, 2])  # k1 z
+        # plt.grid(True)
+        #
+        # plt.figure(1)
+        # plt.plot(time, opt_param[:, 3])  # k2 x
+        # plt.plot(time, opt_param[:, 4])  # k2 y
+        # plt.plot(time, opt_param[:, 5])  # k2 z
+        # plt.grid(True)
+        #
+        # plt.figure(2)
+        # plt.plot(time, opt_param[:, 6])  # k4 x
+        # plt.plot(time, opt_param[:, 7])  # k4 y
+        # plt.plot(time, opt_param[:, 8])  # k4 z
+        # plt.grid(True)
+        #
+        # plt.show()
+    print(cal_param_mean)
+    print(np.mean(cal_param_mean, axis=0))

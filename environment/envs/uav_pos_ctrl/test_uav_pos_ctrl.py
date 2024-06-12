@@ -36,10 +36,10 @@ uav_param.time_max = 10
 
 '''Parameter list of the attitude controller'''
 att_ctrl_param = fntsmc_param(
-    k1=np.array([4., 4., 15.]).astype(float),
-    k2=np.array([1., 1., 1.5]).astype(float),
+    k1=np.array([6.00810648, 6.80311651, 13.47563418]).astype(float),			# 手调: 4 4 15
+    k2=np.array([2.04587905, 1.60844957, 0.98401018]).astype(float),			# 手调: 1 1 1.5
     k3=np.array([0.05, 0.05, 0.05]).astype(float),
-    k4=np.array([5, 4, 5]).astype(float),       # 要大
+    k4=np.array([9.85776965, 10.91725924, 13.90115023]).astype(float),       # 要大     手调: 5 4 5
     alpha1=np.array([1.01, 1.01, 1.01]).astype(float),
     alpha2=np.array([1.01, 1.01, 1.01]).astype(float),
     dim=3,
@@ -87,8 +87,8 @@ if __name__ == '__main__':
 			action = env.generate_action_4_uav(att_lim=[np.pi / 3, np.pi / 3, np.pi], dot_att_lim=dot_att_lim)
 			env.step_update(action=action)
 			
-			# env.image = env.image_copy.copy()
-			# env.visualization()
+			env.image = env.image_copy.copy()
+			env.visualization()
 		if env.terminal_flag == 1:
 			success += 1
 		print(env.sum_reward)

@@ -181,7 +181,7 @@ if __name__ == '__main__':
     simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
     
-    RETRAIN = False  # 基于之前的训练结果重新训练
+    RETRAIN = True  # 基于之前的训练结果重新训练
     HEHE_FLAG = True
     
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
@@ -195,13 +195,13 @@ if __name__ == '__main__':
     reward_norm = Normalization(shape=1)
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     ppo_msg = {'gamma': 0.99,
-               'K_epochs': 25,
+               'K_epochs': 10,
                'eps_clip': 0.2,
                'buffer_size': int(env.time_max / env.dt) * 2,
                'state_dim': env_test.state_dim,
                'action_dim': env_test.action_dim,
-               'a_lr': 1e-4,
-               'c_lr': 1e-3,
+               'a_lr': 1e-5,
+               'c_lr': 1e-4,
                'set_adam_eps': True,
                'lmd': 0.95,
                'use_adv_norm': True,
@@ -232,10 +232,11 @@ if __name__ == '__main__':
     if RETRAIN:
         print('RELOADING......')
         '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
-        optPath = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good1/'
+        # optPath = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_1/'
+        optPath = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_2/'
         agent.actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
-        # agent.critic.load_state_dict(torch.load(optPath + 'critic'))
-        agent.critic.init(True)
+        agent.critic.load_state_dict(torch.load(optPath + 'critic'))
+        # agent.critic.init(True)
         '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
     
     while True:

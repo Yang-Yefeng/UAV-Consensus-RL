@@ -151,4 +151,4 @@ if __name__ == '__main__':
             # env.visualization()
     
     print('Finish...')
-    pd.DataFrame(cost, columns=['A', 'T', 'r1', 'r2']).to_csv('att_cost_surface.csv', sep=',', index=False)
+    pd.DataFrame(cost, columns=['A', 'T', 'r1', 'r2']).to_csv('../../plot/3D_surface/att_cost_surface.csv', sep=',', index=False)

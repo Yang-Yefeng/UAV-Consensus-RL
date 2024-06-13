@@ -98,16 +98,20 @@ class uav_att_ctrl(UAV):
 			phi0 = outer_param[2]
 		else:
 			if is_random:
-				A = np.array([
-					np.random.uniform(low=0, high=self.phi_max if self.phi_max < np.pi / 3 else np.pi / 3),
-					np.random.uniform(low=0, high=self.theta_max if self.theta_max < np.pi / 3 else np.pi / 3),
-					np.random.uniform(low=0, high=self.psi_max if self.psi_max < np.pi / 2 else np.pi / 2)])
-				T = np.random.uniform(low=3, high=6, size=3)  # 随机生成周期
-				phi0 = np.random.uniform(low=0, high=np.pi / 2, size=3)
+				A = np.random.uniform(low=0, high=deg2rad(70)) * np.ones(3)
+				# A = np.array([
+				# 	np.random.uniform(low=0, high=self.phi_max if self.phi_max < np.pi / 3 else np.pi / 3),
+				# 	np.random.uniform(low=0, high=self.theta_max if self.theta_max < np.pi / 3 else np.pi / 3),
+				# 	np.random.uniform(low=0, high=self.psi_max if self.psi_max < np.pi / 2 else np.pi / 2)])
+				
+				# T = np.random.uniform(low=3, high=6, size=3)  # 随机生成周期
+				T = np.random.uniform(low=2, high=7) * np.ones(3)
+				# phi0 = np.random.uniform(low=0, high=np.pi / 2, size=3)
+				phi0 = np.array([0, 0, 0])
 			else:
-				A = np.array([np.pi / 3, np.pi / 3, deg2rad(80)])
+				A = np.array([np.pi / 3, np.pi / 3, np.pi / 3])
 				T = np.array([5, 5, 5])
-				phi0 = np.array([np.pi / 2, 0., 0.])
+				phi0 = np.array([0., 0., 0.])
 			if yaw_fixed:
 				A[2] = 0.
 				phi0[2] = 0.

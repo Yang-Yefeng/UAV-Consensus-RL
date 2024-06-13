@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
     HEHE_FLAG = True
 
-    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_2/'
+    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_maybe_good_1/'
 
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
     env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
@@ -110,9 +110,9 @@ if __name__ == '__main__':
 
     agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
     
-    A_num = 3
-    T_num = 3
-    A = np.linspace(0, deg2rad(70), A_num)
+    A_num = 70
+    T_num = 15
+    A = np.linspace(0, deg2rad(60), A_num)
     T = np.linspace(3,6,T_num)
     _i = 0
     
@@ -121,7 +121,7 @@ if __name__ == '__main__':
         for t in T:
             p = np.array([[a, a, a], [t, t, t], [0, 0, 0]])
             '''1. RL'''
-            reset_att_ctrl_param('zero')
+            reset_att_ctrl_param('optimal')
             env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p)
             while not env.is_terminal:
                 _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
@@ -145,7 +145,7 @@ if __name__ == '__main__':
             r2 = env.sum_reward
             cost[_i, :] = np.array([a, t, r1, r2])
             _i += 1
-            if _i % 100 == 0:
+            if _i % 50 == 0:
                 print(_i)
             # env.visualization()
     

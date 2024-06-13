@@ -181,7 +181,7 @@ if __name__ == '__main__':
     simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
     
-    RETRAIN = True  # 基于之前的训练结果重新训练
+    RETRAIN = False  # 基于之前的训练结果重新训练
     HEHE_FLAG = True
     
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
@@ -195,19 +195,19 @@ if __name__ == '__main__':
     reward_norm = Normalization(shape=1)
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     ppo_msg = {'gamma': 0.99,
-               'K_epochs': 10,
+               'K_epochs': 15,
                'eps_clip': 0.2,
                'buffer_size': int(env.time_max / env.dt) * 2,
                'state_dim': env_test.state_dim,
                'action_dim': env_test.action_dim,
-               'a_lr': 1e-5,
+               'a_lr': 1e-4,
                'c_lr': 1e-4,
                'set_adam_eps': True,
                'lmd': 0.95,
                'use_adv_norm': True,
                'mini_batch_size': 64,
                'entropy_coef': 0.01,
-               'use_grad_clip': True,
+               'use_grad_clip': False,
                'use_lr_decay': True,
                'max_train_steps': int(5e6),
                'using_mini_batch': False}
@@ -251,7 +251,7 @@ if __name__ == '__main__':
                 # if t_epoch % 10 == 0 and t_epoch > 0:
                 print('Sumr:  ', env.sum_reward)
                 sumr_list.append(env.sum_reward)
-                env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+                env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=None)
             else:
                 env.current_state = env.next_state.copy()  # 此时相当于时间已经来到了下一拍，所以 current 和 next 都得更新
                 s = env.current_state_norm(env.current_state, update=True)
@@ -297,7 +297,7 @@ if __name__ == '__main__':
             print('    Testing...')
             for i in range(n):
                 reset_att_ctrl_param('zero')
-                env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+                env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=None)
                 while not env_test.is_terminal:
                     _a = agent.evaluate(env.current_state_norm(env_test.current_state, update=False))
                     env_test.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新

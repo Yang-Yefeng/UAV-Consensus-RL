@@ -81,7 +81,8 @@ if __name__ == '__main__':
 
     HEHE_FLAG = True
 
-    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_2/'
+    # opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_2/'
+    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_draw_only/trainNum_3300/'
     # opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_4/trainNum_5200/'
 
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
@@ -117,7 +118,7 @@ if __name__ == '__main__':
     for i in range(N):
         reset_att_ctrl_param('optimal')
         p = np.array([[0.6, 0.6, 0.6], [4.5, 4.5, 4.5], [0, 0, 0]])
-        env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p)
+        env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=None)
         while not env.is_terminal:
             _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
             env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新

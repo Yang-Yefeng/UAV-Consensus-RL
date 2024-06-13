@@ -195,13 +195,13 @@ if __name__ == '__main__':
     reward_norm = Normalization(shape=1)
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     ppo_msg = {'gamma': 0.99,
-               'K_epochs': 15,
+               'K_epochs': 20,
                'eps_clip': 0.2,
                'buffer_size': int(env.time_max / env.dt) * 2,
                'state_dim': env_test.state_dim,
                'action_dim': env_test.action_dim,
                'a_lr': 1e-4,
-               'c_lr': 1e-4,
+               'c_lr': 1e-3,
                'set_adam_eps': True,
                'lmd': 0.95,
                'use_adv_norm': True,
@@ -224,7 +224,7 @@ if __name__ == '__main__':
                                          action_dim=env.action_dim,
                                          a_min=np.array(env.action_range)[:, 0],
                                          a_max=np.array(env.action_range)[:, 1],
-                                         init_std=0.5,  # 第2次学是 0.3
+                                         init_std=0.4,  # 第2次学是 0.3
                                          use_orthogonal_init=True),
                  critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
     agent.PPO2_info()
@@ -297,7 +297,7 @@ if __name__ == '__main__':
             print('    Testing...')
             for i in range(n):
                 reset_att_ctrl_param('zero')
-                env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=None)
+                env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
                 while not env_test.is_terminal:
                     _a = agent.evaluate(env.current_state_norm(env_test.current_state, update=False))
                     env_test.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
@@ -319,7 +319,7 @@ if __name__ == '__main__':
         
         '''5. 每学习 250 次，减小一次探索概率'''
         if t_epoch % 250 == 0 and t_epoch > 0:
-            if agent.actor.std > 0.1:
+            if agent.actor.std > 0.2:
                 agent.actor.std -= 0.05
         '''5. 每学习 250 次，减小一次探索概率'''
         

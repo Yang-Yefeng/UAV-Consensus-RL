@@ -103,7 +103,7 @@ class uav_att_ctrl(UAV):
 				# 	np.random.uniform(low=0, high=self.phi_max if self.phi_max < np.pi / 3 else np.pi / 3),
 				# 	np.random.uniform(low=0, high=self.theta_max if self.theta_max < np.pi / 3 else np.pi / 3),
 				# 	np.random.uniform(low=0, high=self.psi_max if self.psi_max < np.pi / 2 else np.pi / 2)])
-				
+
 				# T = np.random.uniform(low=3, high=6, size=3)  # 随机生成周期
 				T = np.random.uniform(low=2, high=7) * np.ones(3)
 				# phi0 = np.random.uniform(low=0, high=np.pi / 2, size=3)

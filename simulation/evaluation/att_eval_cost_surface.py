@@ -147,6 +147,7 @@ if __name__ == '__main__':
             _i += 1
             if _i % 50 == 0:
                 print(_i)
+            print('r1:', r1, 'r2', r2)
             # env.visualization()
     
     print('Finish...')

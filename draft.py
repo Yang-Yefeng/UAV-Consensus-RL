@@ -10,7 +10,5 @@ from environment.envs.UAV.uav_att_ctrl import uav_att_ctrl, fntsmc_param, uav_pa
 # r, dr, ddr = att.generate_ref_att_trajectory(ref_att_amplitude, ref_att_period, ref_att_bias_a, ref_att_bias_phase)
 # print(r.shape, dr.shape, ddr.shape)
 
-a = np.atleast_2d([])
-for _ in range(10):
-    a = np.concatenate((a, [1,2,3]))
+a= np.concatenate((np.random.uniform(low=0, high=3)*np.ones(3), [np.random.uniform(low=0, high=1)]))
 print(a)

@@ -80,7 +80,8 @@ if __name__ == '__main__':
     # simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     # os.mkdir(simulationPath)
 
-    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_2/'
+    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_maybe_good_1/'        # att_maybe_good_1 目前位置最好的
+    # opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_2/'  # att_good_2
     # opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_4/trainNum_5200/'
 
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
@@ -116,7 +117,7 @@ if __name__ == '__main__':
     agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
     opt_param = np.zeros((int(uav_param.time_max / DT), env.action_dim))
 
-    N = 50
+    N = 5
     cal_param_mean = np.zeros((N, env.action_dim))
     for i in range(N):
         reset_att_ctrl_param('zero')
@@ -131,32 +132,32 @@ if __name__ == '__main__':
             _torque = env.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
             env.step_update([_torque[0], _torque[1], _torque[2]])
             
-            # env.visualization()
+            env.visualization()
 
         print('Evaluating %.0f | Reward: %.2f ' % (i, env.sum_reward))
         row = opt_param.shape[0]
         p = opt_param[int(0.75 * row): row, :]
         cal_param_mean[i, :] = np.mean(p, axis=0)
         
-        # time = np.linspace(0, env.time_max, int(uav_param.time_max / DT))
-        # plt.figure(0)
-        # plt.plot(time, opt_param[:, 0])  # k1 x
-        # plt.plot(time, opt_param[:, 1])  # k1 y
-        # plt.plot(time, opt_param[:, 2])  # k1 z
-        # plt.grid(True)
-        #
-        # plt.figure(1)
-        # plt.plot(time, opt_param[:, 3])  # k2 x
-        # plt.plot(time, opt_param[:, 4])  # k2 y
-        # plt.plot(time, opt_param[:, 5])  # k2 z
-        # plt.grid(True)
-        #
-        # plt.figure(2)
-        # plt.plot(time, opt_param[:, 6])  # k4 x
-        # plt.plot(time, opt_param[:, 7])  # k4 y
-        # plt.plot(time, opt_param[:, 8])  # k4 z
-        # plt.grid(True)
-        #
-        # plt.show()
+        time = np.linspace(0, env.time_max, int(uav_param.time_max / DT))
+        plt.figure(0)
+        plt.plot(time, opt_param[:, 0])  # k1 x
+        plt.plot(time, opt_param[:, 1])  # k1 y
+        plt.plot(time, opt_param[:, 2])  # k1 z
+        plt.grid(True)
+
+        plt.figure(1)
+        plt.plot(time, opt_param[:, 3])  # k2 x
+        plt.plot(time, opt_param[:, 4])  # k2 y
+        plt.plot(time, opt_param[:, 5])  # k2 z
+        plt.grid(True)
+
+        plt.figure(2)
+        plt.plot(time, opt_param[:, 6])  # k4 x
+        plt.plot(time, opt_param[:, 7])  # k4 y
+        plt.plot(time, opt_param[:, 8])  # k4 z
+        plt.grid(True)
+
+        plt.show()
     print(cal_param_mean)
     print(np.mean(cal_param_mean, axis=0))

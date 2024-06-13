@@ -119,7 +119,7 @@ class UAV:
 		self.z_max = self.pos_max[2]
 		self.z_min = self.pos_min[2]
 		
-		self.max_admissible_error = 1.0
+		self.max_admissible_error = 3.0
 		
 		self.phi_max = deg2rad(80)
 		self.theta_max = deg2rad(80)

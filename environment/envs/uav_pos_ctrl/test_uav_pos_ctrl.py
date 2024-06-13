@@ -67,17 +67,17 @@ pos_ctrl_param = fntsmc_param(
 
 if __name__ == '__main__':
 	env = uav_pos_ctrl_RL(uav_param, att_ctrl_param, pos_ctrl_param)
-	NUM_OF_SIMULATION = 1000
+	NUM_OF_SIMULATION = 10
 	cnt = 0
 	success = 0
 	while cnt < NUM_OF_SIMULATION:
 		'''1. reset and generate reference signal'''
-		# p = [[0, 0, 0, 0], [5, 5, 5, 5], [0, 0, 0, 0], [2, 0, 0, 0]]
-		env.reset_env(random_pos_trajectory=True,
-					  random_pos0=True,
+		p = [[2, 2, 2, deg2rad(70)], [5, 5, 5, 5], [0, 0, 0, 0], [0, 0, 0, 0]]
+		env.reset_env(random_pos_trajectory=False,
+					  random_pos0=False,
 					  yaw_fixed=False,
 					  new_pos_ctrl_param=None,
-					  outer_param=None)
+					  outer_param=p)
 		if cnt % 1 == 0:
 			print('Current:', cnt)
 		

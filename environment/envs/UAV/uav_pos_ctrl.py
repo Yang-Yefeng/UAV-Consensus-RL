@@ -164,13 +164,18 @@ class uav_pos_ctrl(UAV):
 			ba = np.array(outer_param[3])
 		else:
 			if is_random:
-				A = np.array([
-					np.random.uniform(low=0, high=3),				# x
-					np.random.uniform(low=0, high=3),				# y
-					np.random.uniform(low=0, high=3),				# z
-					np.random.uniform(low=0, high=deg2rad(80))])		# psi
-				T = np.random.uniform(low=4, high=8, size=4)
-				phi0 = np.random.uniform(low=0, high=np.pi / 2, size=4)
+				# A = np.array([
+				# 	np.random.uniform(low=0, high=3),				# x
+				# 	np.random.uniform(low=0, high=3),				# y
+				# 	np.random.uniform(low=0, high=3),				# z
+				# 	np.random.uniform(low=0, high=deg2rad(80))])		# psi
+				# T = np.random.uniform(low=4, high=8, size=4)
+				# phi0 = np.random.uniform(low=0, high=np.pi / 2, size=4)
+				# ba = np.zeros(4)
+				A = np.concatenate((np.random.uniform(low=0, high=3) * np.ones(3),
+									[np.random.uniform(low=0, high=deg2rad(70))]))
+				T = np.random.uniform(low=4, high=8) * np.ones(4)
+				phi0 = np.random.uniform(low=0, high=np.pi / 2) * np.ones(4)
 				ba = np.zeros(4)
 			else:
 				A = np.array([2, 2, 2, deg2rad(80)])
@@ -188,6 +193,10 @@ class uav_pos_ctrl(UAV):
 			self.x = np.random.uniform(low=self.x_min + 1, high=self.x_max - 1)
 			self.y = np.random.uniform(low=self.y_min + 1, high=self.y_max - 1)
 			self.z = np.random.uniform(low=self.z_min + 1, high=self.z_max - 1)
+		else:
+			self.x = self.x_min
+			self.y = self.y_min
+			self.z = self.z_min
 		self.generate_ref_pos_trajectory(self.ref_pos_amplitude, self.ref_pos_period, self.ref_pos_bias_a, self.ref_pos_bias_phase)
 	
 	def controller_reset(self):

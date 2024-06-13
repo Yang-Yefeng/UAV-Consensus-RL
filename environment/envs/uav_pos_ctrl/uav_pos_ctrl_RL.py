@@ -322,7 +322,7 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
             cv.waitKey(1)
     
     def visualization(self):
-        self.image = self.image.copy()
+        self.image = self.image_copy.copy()
         self.draw_3d_points_projection(self.time, np.atleast_2d([self.eta_d]), [Color().DarkGreen])
         self.draw_3d_points_projection(self.time, np.atleast_2d([self.uav_pos()]), [Color().Red])
         self.draw_error(self.uav_pos(), self.eta_d)
@@ -427,11 +427,11 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
         if hehe_flag:
             for i in range(3):  # 分别对应 k1: 0 1 2, k2: 3 4 5, k4: 6 7 8
                 if action_from_actor[i] > 0:
-                    self.pos_ctrl.k1[i] = action_from_actor[i] * 5
+                    self.pos_ctrl.k1[i] = action_from_actor[i]
                 if action_from_actor[i + 3] > 0:
                     self.pos_ctrl.k2[i] = action_from_actor[i + 3]
                 if action_from_actor[i + 6] > 0:
-                    self.pos_ctrl.k4[i] = action_from_actor[i + 6] * 5
+                    self.pos_ctrl.k4[i] = action_from_actor[i + 6] * 10
         else:
             for i in range(3):  # 分别对应 k1: 0 1 2, k2: 3 4 5, k4: 6 7 8
                 if action_from_actor[i] > 0:
@@ -476,11 +476,11 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
         self.next_state_norm.running_ms.S = data[:, 7]
     
     def reset_env(self,
-                  random_pos_trajectory: bool = False,  # 是否随机生成姿态参考指令
+                  random_pos_trajectory: bool = False,
                   random_pos0: bool = False,
-                  yaw_fixed: bool = False,  # 是否固定偏航角
-                  new_pos_ctrl_param: fntsmc_param = None,  # 是否有新的控制器参数
-                  outer_param: list = None  # 是否有外部参数输入
+                  yaw_fixed: bool = False,
+                  new_pos_ctrl_param: fntsmc_param = None,
+                  outer_param: list = None
                   ):
         self.reset_uav()
         self.collector_reset()

@@ -356,21 +356,17 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
         
         '''reward for att out!!'''
         u_extra = 0.
-        if self.terminal_flag == 2:  # 位置出界
+        if self.terminal_flag == 2 or self.terminal_flag == 3:  # 位置出界
             print('Position out')
-            '''
-                给出界时刻的位置、速度、输出误差的累计
-            '''
-            _n = (self.time_max - self.time) / self.dt
-            u_extra = _n * (u_pos + u_vel + u_acc)
-        
-        if self.terminal_flag == 3:
-            print('Attitude out')
-            '''
-                给出界时刻的位置、速度、输出误差的累计
-            '''
-            _n = (self.time_max - self.time) / self.dt
-            u_extra = _n * (u_pos + u_vel + u_acc)
+            _n = (self.time_max - self.time) / self.dt - 1
+            _u_x = _u_y = _u_z = 0.
+            if self.x > self.x_max or self.x < self.x_min:
+                _u_x = -(self.x_max - self.x_min) ** 2 * self.Q_pos[0]
+            if self.y > self.y_max or self.y < self.y_min:
+                _u_y = -(self.y_max - self.y_min) ** 2 * self.Q_pos[1]
+            if self.z > self.z_max or self.z < self.z_min:
+                _u_z = -(self.z_max - self.z_min) ** 2 * self.Q_pos[2]
+            u_extra = _n * (_u_x + _u_y + _u_z + u_vel + u_acc)
         
         self.reward = u_pos + u_vel + u_acc + u_extra
         self.sum_reward += self.reward

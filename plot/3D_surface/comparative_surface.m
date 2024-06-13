@@ -17,7 +17,7 @@ z1 = griddata(A, T, r1, x, y);
 mesh(x, y, z1, 'facecolor', 'b', 'EdgeColor', 'none'); hold on;
 
 % plot rl
-z2 = griddata(fx, fy, fz, x, y);
+z2 = griddata(A, T, r2, x, y);
 mesh(x, y, z2, 'facecolor', 'r', 'EdgeColor', 'none'); hold on;
 % legend('smc', 'rl');
 % title('attitude');

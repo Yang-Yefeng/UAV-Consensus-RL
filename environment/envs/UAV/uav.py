@@ -1,6 +1,5 @@
-import numpy as np
-
 from utils.functions import *
+import sys, os
 
 
 class uav_param:
@@ -129,6 +128,8 @@ class UAV:
 		self.theta_min = -deg2rad(80)
 		self.psi_min = -deg2rad(120)
 		'state limitation'
+		
+		self.project_path = os.path.dirname(os.path.abspath(__file__)) + '/../../../'
 	
 	def is_att_out(self):
 		_flag = False

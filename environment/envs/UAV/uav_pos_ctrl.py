@@ -219,13 +219,13 @@ class uav_pos_ctrl(UAV):
             else:
                 pos = np.array([self.x_max, self.y_max, self.z_max])
         if random_pos0:
-            self.x = np.random.uniform(low=self.x_min + 1, high=self.x_max - 1)
-            self.y = np.random.uniform(low=self.y_min + 1, high=self.y_max - 1)
-            self.z = np.random.uniform(low=self.z_min + 1, high=self.z_max - 1)
+            self.x = np.random.uniform(low=self.x_min + 0.1, high=self.x_max - 0.1)
+            self.y = np.random.uniform(low=self.y_min + 0.1, high=self.y_max - 0.1)
+            self.z = np.random.uniform(low=self.z_min + 0.1, high=self.z_max - 0.1)
         else:
-            self.x = self.x_min
-            self.y = self.y_min
-            self.z = self.z_min
+            self.x = 0.
+            self.y = 0.
+            self.z = 0.
         self.generate_ref_pos(pos)
     
     def controller_reset(self):

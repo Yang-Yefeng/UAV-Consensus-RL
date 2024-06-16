@@ -212,9 +212,9 @@ class uav_pos_ctrl(UAV):
         else:
             if is_random:
                 pos = np.array([
-                    np.random.uniform(self.x_min + 1, self.x_max - 1),
-                    np.random.uniform(self.y_min + 1, self.y_max - 1),
-                    np.random.uniform(self.z_min + 1, self.z_max - 1)
+                    np.random.uniform(self.x_min + 0.1, self.x_max - 0.1),
+                    np.random.uniform(self.y_min + 0.1, self.y_max - 0.1),
+                    np.random.uniform(self.z_min + 0.1, self.z_max - 0.1)
                 ])
             else:
                 pos = np.array([self.x_max, self.y_max, self.z_max])

@@ -49,8 +49,8 @@ class uav_pos_stabilize_RL(rl_base, uav_pos_ctrl):
         self.reward = 0.
         self.sum_reward = 0.
         self.Q_pos = np.array([1., 1., 1.])  # 角度误差惩罚
-        self.Q_vel = np.array([0.1, 0.1, 0.1])  # 角速度误差惩罚
-        self.R = np.array([0.01, 0.01, 0.01])  # 期望加速度输出 (即控制输出) 惩罚
+        self.Q_vel = np.array([0.3, 0.3, 0.3])  # 角速度误差惩罚
+        self.R = np.array([0.1, 0.1, 0.1])  # 期望加速度输出 (即控制输出) 惩罚
         self.is_terminal = False
         self.terminal_flag = 0
         '''rl_base'''
@@ -356,14 +356,15 @@ class uav_pos_stabilize_RL(rl_base, uav_pos_ctrl):
         if self.terminal_flag == 2 or self.terminal_flag == 3:  # 位置出界
             print('Position out')
             _n = (self.time_max - self.time) / self.dt - 1
-            _u_x = _u_y = _u_z = 0.
-            if self.x > self.x_max or self.x < self.x_min:
-                _u_x = -(self.x_max - self.x_min) ** 2 * self.Q_pos[0]
-            if self.y > self.y_max or self.y < self.y_min:
-                _u_y = -(self.y_max - self.y_min) ** 2 * self.Q_pos[1]
-            if self.z > self.z_max or self.z < self.z_min:
-                _u_z = -(self.z_max - self.z_min) ** 2 * self.Q_pos[2]
-            u_extra = _n * (_u_x + _u_y + _u_z + u_vel + u_acc)
+            u_extra = _n * (u_pos + u_vel + u_acc)
+            # _u_x = _u_y = _u_z = 0.
+            # if self.x > self.x_max or self.x < self.x_min:
+            #     _u_x = -np.fabs(self.x_max - self.x_min) * self.Q_pos[0]
+            # if self.y > self.y_max or self.y < self.y_min:
+            #     _u_y = -np.fabs(self.y_max - self.y_min) * self.Q_pos[1]
+            # if self.z > self.z_max or self.z < self.z_min:
+            #     _u_z = -np.fabs(self.z_max - self.z_min) * self.Q_pos[2]
+            # u_extra = _n * (_u_x + _u_y + _u_z + u_vel + u_acc)
         
         self.reward = u_pos + u_vel + u_acc + u_extra
         self.sum_reward += self.reward

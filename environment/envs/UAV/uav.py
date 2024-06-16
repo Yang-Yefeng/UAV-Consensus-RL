@@ -106,7 +106,7 @@ class UAV:
 		'''control'''
 		
 		'state limitation'
-		self.pos_min = np.array([-6, -6, -6])
+		self.pos_min = np.array([-6, -6, 0])
 		self.pos_max = np.array([6, 6, 6])
 		self.vel_min = np.array([-10, -10, -10])
 		self.vel_max = np.array([10, 10, 10])

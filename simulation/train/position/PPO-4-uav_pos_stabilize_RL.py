@@ -193,7 +193,7 @@ class PPOCritic(nn.Module):
 
 
 if __name__ == '__main__':
-    RETRAIN = True  # 基于之前的训练结果重新训练
+    RETRAIN = False  # 基于之前的训练结果重新训练
     HEHE_FLAG = True
     
     env = uav_pos_stabilize_RL(uav_param, att_ctrl_param, pos_ctrl_param)
@@ -224,11 +224,15 @@ if __name__ == '__main__':
                'max_train_steps': int(5e6),
                'using_mini_batch': False}
     
-    # action_std_init = 0.4  # 初始探索方差
-    # min_action_std = 0.05  # 最小探索方差
+    action_std_init = 0.6  # 初始探索方差
+    min_action_std = 0.2  # 最小探索方差
+    std_decay_step = 0.05
+    std_decay_epoch = int(250)
     timestep = 0
     t_epoch = 0  # 当前训练次数
     test_num = 0
+    
+    EPOCH_MAX = (action_std_init - min_action_std) / std_decay_step * std_decay_epoch + 2000
     
     agent = PPO2(env_msg=env_msg,
                  ppo_msg=ppo_msg,
@@ -236,7 +240,7 @@ if __name__ == '__main__':
                                          action_dim=env.action_dim,
                                          a_min=np.array(env.action_range)[:, 0],
                                          a_max=np.array(env.action_range)[:, 1],
-                                         init_std=0.6,  # 第2次学是 0.3
+                                         init_std=action_std_init,  # 第2次学是 0.3
                                          use_orthogonal_init=True),
                  critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
     agent.PPO2_info()
@@ -250,13 +254,13 @@ if __name__ == '__main__':
     if RETRAIN:
         print('RELOADING......')
         '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
-        optPath = env.project_path + 'datasave/nets/pos_maybe_good_1/'
+        optPath = env.project_path + 'datasave/nets/pos_maybe_good_3/'
         agent.actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
-        agent.critic.load_state_dict(torch.load(optPath + 'critic'))
+        # agent.critic.load_state_dict(torch.load(optPath + 'critic'))
         agent.critic.init(True)
         '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
-        
-    while True:
+    
+    while t_epoch < EPOCH_MAX:
         '''1. 初始化 buffer 索引和累计奖励记录'''
         buffer_index = 0
         '''1. 初始化 buffer 索引和累计奖励记录'''
@@ -336,9 +340,9 @@ if __name__ == '__main__':
         '''4. 每学习 10 次，测试一下'''
         
         '''5. 每学习 250 次，减小一次探索概率'''
-        if t_epoch % 250 == 0 and t_epoch > 0:
-            if agent.actor.std > 0.2:
-                agent.actor.std -= 0.05
+        if t_epoch % std_decay_epoch == 0 and t_epoch > 0:
+            if agent.actor.std > min_action_std:
+                agent.actor.std -= std_decay_step
         '''5. 每学习 250 次，减小一次探索概率'''
         
         # '''6. 每学习 50 次，保存一下 policy'''

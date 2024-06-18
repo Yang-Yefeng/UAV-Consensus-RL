@@ -77,8 +77,7 @@ if __name__ == '__main__':
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
     
     # opt_path = env.project_path + 'datasave/nets/att_good_2/'
-    # opt_path = env.project_path + 'datasave/log/att_train_fuck_1/trainNum_1930/'
-    opt_path = env.project_path + 'datasave/log/att_train_fuck_2/trainNum_150/'
+    opt_path = env.project_path + 'datasave/log/att_train_draw_only/trainNum_3300/'
     # opt_path = env.project_path + 'datasave/log/att_train_4/trainNum_5200/'
     
     env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
@@ -107,20 +106,22 @@ if __name__ == '__main__':
 
     agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
 
-    N = 10
+    N = 100
     success = 0
     fail = 0
     for i in range(N):
         reset_att_ctrl_param('optimal')
-        p = np.array([[0.6, 0.6, 0.6], [4.5, 4.5, 4.5], [0, 0, 0]])
-        env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=None)
+        p = np.array([[deg2rad(10), deg2rad(10), deg2rad(10)], [3, 3, 3], [0, 0, 0]])
+        env.reset_env(random_att_trajectory=True,
+                      yaw_fixed=False,
+                      new_att_ctrl_param=att_ctrl_param,
+                      outer_param=p,
+                      is_ideal=True)
         while not env.is_terminal:
             _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
             env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
-            _rhod = env.rho_d_all[env.n]
-            _dot_rhod = env.dot_rho_d_all[env.n]
-            _dot2_rhod = env.dot2_rho_d_all[env.n]
-            _torque = env.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
+
+            _torque = env.att_control(att_only=True, obs=np.zeros(3))
             env.step_update([_torque[0], _torque[1], _torque[2]])
             env.visualization()
             

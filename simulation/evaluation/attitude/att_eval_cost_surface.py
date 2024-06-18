@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from environment.envs.uav_att_ctrl.uav_att_ctrl_RL import uav_att_ctrl_RL, uav_param
 from environment.envs.UAV.FNTSMC import fntsmc_param
+from environment.envs.UAV.RobustDifferentatior_3rd import robust_differentiator_3rd as rd3
 
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
 
@@ -75,9 +76,12 @@ def reset_att_ctrl_param(flag: str):
 if __name__ == '__main__':
     HEHE_FLAG = True
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
-    opt_path = env.project_path + 'datasave/log/att_train_fuck_2/trainNum_150/'
-    # opt_path = env.project_path + 'datasave/nets/att_good_3/'
+    opt_path = env.project_path + 'datasave/log/att_train_draw_only/trainNum_3300/'
+    # opt_path = env.project_path + 'datasave/nets/att_good_1/'   # 2 比较好用
     env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
+    env.Q_att = np.array([1., 1., 1.])
+    env.Q_pqr = np.array([0.01, 0.01, 0.01])
+    env.R = np.array([0.0, 0.0, 0.0])
 
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     ppo_msg = {'gamma': 0.99,
@@ -109,40 +113,63 @@ if __name__ == '__main__':
     T = np.linspace(3,6, T_num)
     _i = 0
     
-    cost = np.zeros((A_num * T_num, 4))  # a, t, r1 ,r2
+    cost = np.zeros((A_num * T_num, 6))  # a, t, r1 ,r2
     for a in A:
         for t in T:
             p = np.array([[a, a, a], [t, t, t], [0, 0, 0]])
-            '''1. RL'''
+            '''1. RL no obs'''
             reset_att_ctrl_param('optimal')
-            env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p)
+            env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p, is_ideal=False)
             while not env.is_terminal:
                 _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
                 env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
-                _rhod = env.rho_d_all[env.n]
-                _dot_rhod = env.dot_rho_d_all[env.n]
-                _dot2_rhod = env.dot2_rho_d_all[env.n]
-                _torque = env.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
+                _torque = env.att_control(True, obs=np.zeros(3))
                 env.step_update([_torque[0], _torque[1], _torque[2]])
             r1 = env.sum_reward
             
-            '''2. 传统'''
+            '''2. 传统 no obs'''
             reset_att_ctrl_param('optimal')
-            env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p)
+            env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p, is_ideal=False)
             while not env.is_terminal:
-                _rhod = env.rho_d_all[env.n]
-                _dot_rhod = env.dot_rho_d_all[env.n]
-                _dot2_rhod = env.dot2_rho_d_all[env.n]
-                _torque = env.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
+                _torque = env.att_control(True, obs=np.zeros(3))
                 env.step_update([_torque[0], _torque[1], _torque[2]])
             r2 = env.sum_reward
-            cost[_i, :] = np.array([a, t, r1, r2])
+
+            '''3. RL obs'''
+            reset_att_ctrl_param('optimal')
+            obs = rd3(use_freq=True, omega=np.array([3.5, 3.5, 3.5]), dim=3, dt=DT)
+            obs.reset()
+            env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p, is_ideal=False)
+            while not env.is_terminal:
+                _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
+                env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
+
+                syst_dynamic = np.dot(env.dW(), env.omega()) + np.dot(env.W(), env.A_omega() + np.dot(env.B_omega(), env.att_ctrl.control_in))
+                obs_rho, _ = obs.observe(x=env.rho1(), syst_dynamic=syst_dynamic)
+
+                _torque = env.att_control(True, obs=obs_rho)
+                env.step_update([_torque[0], _torque[1], _torque[2]])
+            r3 = env.sum_reward
+            # print('A: %.2f   T: %.2f   r1: %.2f   r2: %.2f   r3: %.2f' % (rad2deg(a), t, r1, r2, r3))
+            
+            '''4. 传统 obs'''
+            reset_att_ctrl_param('optimal')
+            obs = rd3(use_freq=True, omega=np.array([3.5, 3.5, 3.5]), dim=3, dt=env.dt)
+            obs.reset()
+            env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=p, is_ideal=False)
+            while not env.is_terminal:
+                syst_dynamic = np.dot(env.dW(), env.omega()) + np.dot(env.W(), env.A_omega() + np.dot(env.B_omega(), env.att_ctrl.control_in))
+                obs_rho, _ = obs.observe(x=env.rho1(), syst_dynamic=syst_dynamic)
+                _torque = env.att_control(True, obs=np.zeros(3))
+                env.step_update([_torque[0], _torque[1], _torque[2]])
+            r4 = env.sum_reward
+
+            cost[_i, :] = np.array([a, t, r1, r2, r3, r4])
             _i += 1
             if _i % 50 == 0:
                 print(_i)
-            print('r1:', r1, 'r2', r2)
-            # env.visualization()
+            print('A: %.2f   T: %.2f   r1: %.2f   r2: %.2f   r3: %.2f   r4: %.2f' % (rad2deg(a), t, r1, r2, r3, r4))
     
     print('Finish...')
     save_path = env.project_path + '/plot/3D_surface/attitude/'
-    pd.DataFrame(cost, columns=['A', 'T', 'r1', 'r2']).to_csv(save_path + 'att_cost_surface.csv', sep=',', index=False)
+    pd.DataFrame(cost, columns=['A', 'T', 'rl_no_obs', 'smc_no_obs', 'rl_obs', 'smc_obs']).to_csv(save_path + 'att_cost_surface.csv', sep=',', index=False)

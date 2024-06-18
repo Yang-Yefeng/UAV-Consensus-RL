@@ -18,7 +18,7 @@ def check_optimal_from_sum_r_list(file: str):
 
 
 if __name__ == '__main__':
-    path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_fuck_2/'
+    path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_draw_only_stage_3/'
     check_optimal_from_sum_r_list(path + 'test_record.csv')
 
     train_r = pd.read_csv(path + 'sumr_list.csv', header=0).to_numpy()

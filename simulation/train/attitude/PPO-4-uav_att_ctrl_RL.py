@@ -1,4 +1,6 @@
 import os, sys, datetime, time
+
+import numpy as np
 import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
@@ -174,17 +176,19 @@ class PPOCritic(nn.Module):
             self.fc3.reset_parameters()
 
 
+os.environ["OMP_NUM_THREADS"] = "1"
+
 if __name__ == '__main__':
     RETRAIN = True  # 基于之前的训练结果重新训练
     HEHE_FLAG = True
     
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
     reset_att_ctrl_param('zero')
-    env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+    env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, is_ideal=True)
     
     env_test = uav_att_ctrl_RL(uav_param, att_ctrl_param)
     reset_att_ctrl_param('zero')
-    env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+    env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, is_ideal=True)
     
     reward_norm = Normalization(shape=1)
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
@@ -201,12 +205,12 @@ if __name__ == '__main__':
                'use_adv_norm': True,
                'mini_batch_size': 64,
                'entropy_coef': 0.01,
-               'use_grad_clip': False,
+               'use_grad_clip': True,
                'use_lr_decay': True,
                'max_train_steps': int(5e6),
                'using_mini_batch': False}
 
-    action_std_init = 0.2  # 初始探索方差
+    action_std_init = 0.45  # 初始探索方差
     min_action_std = 0.2  # 最小探索方差
     std_decay_step = 0.05
     std_decay_epoch = int(250)
@@ -234,9 +238,7 @@ if __name__ == '__main__':
     if RETRAIN:
         print('RELOADING......')
         '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
-        # optPath = env.project_path + 'datasave/nets/att_good_1/'
-        # optPath = env.project_path + 'datasave/nets/att_good_2/'
-        optPath = env.project_path + 'datasave/log/att_train_fuck_1/trainNum_2000/'
+        optPath = env.project_path + 'datasave/log/att_train_draw_only_stage_2/trainNum_2250/'
         agent.actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
         agent.critic.load_state_dict(torch.load(optPath + 'critic'))
         # agent.critic.init(True)
@@ -255,19 +257,20 @@ if __name__ == '__main__':
                 # if t_epoch % 10 == 0 and t_epoch > 0:
                 print('Sumr:  ', env.sum_reward)
                 sumr_list.append(env.sum_reward)
-                env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=None)
+                env.reset_env(random_att_trajectory=True,
+                              yaw_fixed=False,
+                              new_att_ctrl_param=att_ctrl_param,
+                              outer_param=None,
+                              is_ideal=True)
             else:
                 env.current_state = env.next_state.copy()  # 此时相当于时间已经来到了下一拍，所以 current 和 next 都得更新
                 s = env.current_state_norm(env.current_state, update=True)
                 a, a_log_prob = agent.choose_action(s)
                 env.get_param_from_actor(a, hehe_flag=HEHE_FLAG)
-                
-                rhod = env.rho_d_all[env.n]
-                dot_rhod = env.dot_rho_d_all[env.n]
-                dot2_rhod = env.dot2_rho_d_all[env.n]
             
-                torque = env.att_control(ref=rhod, dot_ref=dot_rhod, dot2_ref=dot2_rhod, att_only=True)
+                torque = env.att_control(att_only=True, obs=np.zeros(3))
                 env.step_update([torque[0], torque[1], torque[2]])
+                # env.visualization()
                 if env.is_terminal and (env.terminal_flag != 1):
                     success = 1.0
                 else:
@@ -301,16 +304,12 @@ if __name__ == '__main__':
             print('    Testing...')
             for i in range(n):
                 reset_att_ctrl_param('zero')
-                env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+                env_test.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, is_ideal=True)
                 while not env_test.is_terminal:
                     _a = agent.evaluate(env.current_state_norm(env_test.current_state, update=False))
                     env_test.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
-                    _rhod = env_test.rho_d_all[env_test.n]
-                    _dot_rhod = env_test.dot_rho_d_all[env_test.n]
-                    _dot2_rhod = env_test.dot2_rho_d_all[env_test.n]
-                    _torque = env_test.att_control(_rhod, _dot_rhod, _dot2_rhod, True)
+                    _torque = env_test.att_control(att_only=True, obs=np.zeros(3))
                     env_test.step_update([_torque[0], _torque[1], _torque[2]])
-                    
                     env_test.visualization()
                 test_num += 1
                 test_reward.append(env_test.sum_reward)
@@ -326,22 +325,10 @@ if __name__ == '__main__':
             env.save_state_norm(temp)
         '''4. 每学习 10 次，测试一下'''
         
-        '''5. 每学习 250 次，减小一次探索概率'''
+        '''5. 每学习 std_decay_epoch 次，减小一次探索方差'''
         if t_epoch % std_decay_epoch == 0 and t_epoch > 0:
             if agent.actor.std > min_action_std:
                 agent.actor.std -= std_decay_step
-        '''5. 每学习 250 次，减小一次探索概率'''
-        
-        # '''6. 每学习 50 次，保存一下 policy'''
-        # if t_epoch % 50 == 0 and t_epoch > 0:
-        #     # 	average_test_r = agent.agent_evaluate(5)
-        #     test_num += 1
-        #     print('...check point save...')
-        #     temp = simulationPath + 'trainNum_{}/'.format(t_epoch)
-        #     os.mkdir(temp)
-        #     time.sleep(0.01)
-        #     agent.save_ac(msg=''.format(t_epoch), path=temp)
-        #     env.save_state_norm(temp)
-        # '''6. 每学习 50 次，保存一下 policy'''
+        '''5. 每学习 std_decay_epoch 次，减小一次探索方差'''
         
         t_epoch += 1

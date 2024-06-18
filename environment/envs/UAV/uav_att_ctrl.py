@@ -25,22 +25,24 @@ class uav_att_ctrl(UAV):
 		self.dot_rho_d_all = np.atleast_2d([])
 		self.dot2_rho_d_all = np.atleast_2d([])
 		'''参考轨迹记录'''
-	
-	def att_control(self, ref: np.ndarray, dot_ref: np.ndarray, dot2_ref: np.ndarray, att_only: bool = True):
-		self.ref = ref
-		self.dot_ref = dot_ref
-		self.dot2_ref = dot2_ref
+		
+		self.uncertainty = np.atleast_2d([])
+		
+	def att_control(self, att_only: bool = True, obs: np.ndarray = np.zeros(3)):
+		self.ref = self.rho_d_all[self.n]
+		self.dot_ref = self.dot_rho_d_all[self.n]
+		self.dot2_ref = self.dot2_rho_d_all[self.n]
 		e_rho = self.rho1() - self.ref
 		dot_e_rho = self.dot_rho1() - self.dot_ref
 		self.att_ctrl.control_update_inner(e_rho=e_rho,
 										   dot_e_rho=dot_e_rho,
-										   dd_ref=dot2_ref,
+										   dd_ref=self.dot2_ref,
 										   W=self.W(),
 										   dW=self.dW(),
 										   omega=self.omega(),
 										   A_omega=self.A_omega(),
 										   B_omega=self.B_omega(),
-										   obs=np.zeros(3),
+										   obs=obs,
 										   att_only=att_only)
 		return self.att_ctrl.control_in
 	
@@ -59,7 +61,8 @@ class uav_att_ctrl(UAV):
 					  'd_out_e_1st': np.zeros(3),
 					  'state': np.hstack((np.zeros(6), self.uav_att_pqr_call_back()))}
 		self.collector.record(data_block)
-		self.rk44(action=action_4_uav, dis=np.zeros(6), n=1, att_only=True)
+		dis = np.concatenate((np.zeros(3), self.uncertainty[self.n]))
+		self.rk44(action=action_4_uav, dis=dis, n=1, att_only=True)
 	
 	def generate_ref_att_trajectory(self, _amplitude: np.ndarray, _period: np.ndarray, _bias_a: np.ndarray, _bias_phase: np.ndarray):
 		"""
@@ -98,19 +101,25 @@ class uav_att_ctrl(UAV):
 			phi0 = outer_param[2]
 		else:
 			if is_random:
-				A = np.random.uniform(low=0, high=deg2rad(70)) * np.ones(3)
-				# A = np.array([
-				# 	np.random.uniform(low=0, high=self.phi_max if self.phi_max < np.pi / 3 else np.pi / 3),
-				# 	np.random.uniform(low=0, high=self.theta_max if self.theta_max < np.pi / 3 else np.pi / 3),
-				# 	np.random.uniform(low=0, high=self.psi_max if self.psi_max < np.pi / 2 else np.pi / 2)])
-
-				# T = np.random.uniform(low=3, high=6, size=3)  # 随机生成周期
-				T = np.random.uniform(low=2, high=7) * np.ones(3)
-				# phi0 = np.random.uniform(low=0, high=np.pi / 2, size=3)
+				if np.random.uniform(0, 1) < 0.7:		# 70% 的概率选择之前不好的区域
+					A = np.random.uniform(low=deg2rad(30), high=deg2rad(65)) * np.ones(3)
+					T = np.random.uniform(low=3, high=5) * np.ones(3)
+				else:
+					A = np.random.uniform(low=deg2rad(5), high=deg2rad(30)) * np.ones(3)
+					T = np.random.uniform(low=5, high=7) * np.ones(3)
+				# A = np.random.uniform(low=deg2rad(5), high=deg2rad(65)) * np.ones(3)
+				# # A = np.array([
+				# # 	np.random.uniform(low=0, high=self.phi_max if self.phi_max < np.pi / 3 else np.pi / 3),
+				# # 	np.random.uniform(low=0, high=self.theta_max if self.theta_max < np.pi / 3 else np.pi / 3),
+				# # 	np.random.uniform(low=0, high=self.psi_max if self.psi_max < np.pi / 2 else np.pi / 2)])
+				#
+				# # T = np.random.uniform(low=3, high=6, size=3)  # 随机生成周期
+				# T = np.random.uniform(low=2, high=7) * np.ones(3)
+				# # phi0 = np.random.uniform(low=0, high=np.pi / 2, size=3)
 				phi0 = np.array([0, 0, 0])
 			else:
 				A = np.array([np.pi / 3, np.pi / 3, np.pi / 3])
-				T = np.array([5, 5, 5])
+				T = np.array([3, 3, 3])
 				phi0 = np.array([0., 0., 0.])
 			if yaw_fixed:
 				A[2] = 0.
@@ -122,6 +131,19 @@ class uav_att_ctrl(UAV):
 		self.ref_att_bias_phase = phi0
 		self.rho_d_all, self.dot_rho_d_all, self.dot2_rho_d_all = (
 			self.generate_ref_att_trajectory(self.ref_att_amplitude, self.ref_att_period, self.ref_att_bias_a, self.ref_att_bias_phase))
+	
+	def generate_uncertainty(self, is_ideal: bool = False):
+		N = int(self.time_max / self.dt) + 1
+		t = np.linspace(0, self.time_max, N)
+		if is_ideal:
+			self.uncertainty = np.zeros((N, 3))
+		else:
+			self.uncertainty = np.zeros((N, 3))
+			T = 3
+			w = 2 * np.pi / T
+			self.uncertainty[:, 0] = 1.5 * np.sin(w * t) + 0.2 * np.cos(3 * w * t)
+			self.uncertainty[:, 1] = 0.5 * np.cos(2 * w * t) + 0.15 * np.sin(w * t)
+			self.uncertainty[:, 2] = 0.8 * np.sin(2 * w * t) + 1.0 * np.cos(2 * w * t)
 	
 	def controller_reset(self):
 		self.ref_att_amplitude = np.zeros(3)

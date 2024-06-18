@@ -19,7 +19,7 @@ ENV = 'uav_att_ctrl_RL'
 ALGORITHM = 'PPO2'
 
 '''Parameter of the UAV'''
-DT = 0.02
+DT = 0.01
 uav_param = uav_param()
 uav_param.m = 0.8
 uav_param.g = 9.8
@@ -175,7 +175,7 @@ class PPOCritic(nn.Module):
 
 
 if __name__ == '__main__':
-    RETRAIN = False  # 基于之前的训练结果重新训练
+    RETRAIN = True  # 基于之前的训练结果重新训练
     HEHE_FLAG = True
     
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
@@ -189,13 +189,13 @@ if __name__ == '__main__':
     reward_norm = Normalization(shape=1)
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     ppo_msg = {'gamma': 0.99,
-               'K_epochs': 20,
+               'K_epochs': 10,
                'eps_clip': 0.2,
                'buffer_size': int(env.time_max / env.dt) * 2,
                'state_dim': env_test.state_dim,
                'action_dim': env_test.action_dim,
-               'a_lr': 1e-4,
-               'c_lr': 1e-3,
+               'a_lr': 1e-6,
+               'c_lr': 1e-5,
                'set_adam_eps': True,
                'lmd': 0.95,
                'use_adv_norm': True,
@@ -206,8 +206,10 @@ if __name__ == '__main__':
                'max_train_steps': int(5e6),
                'using_mini_batch': False}
 
-    # action_std_init = 0.4  # 初始探索方差
-    # min_action_std = 0.05  # 最小探索方差
+    action_std_init = 0.2  # 初始探索方差
+    min_action_std = 0.2  # 最小探索方差
+    std_decay_step = 0.05
+    std_decay_epoch = int(250)
     timestep = 0
     t_epoch = 0  # 当前训练次数
     test_num = 0
@@ -218,7 +220,7 @@ if __name__ == '__main__':
                                          action_dim=env.action_dim,
                                          a_min=np.array(env.action_range)[:, 0],
                                          a_max=np.array(env.action_range)[:, 1],
-                                         init_std=0.4,  # 第2次学是 0.3
+                                         init_std=action_std_init,
                                          use_orthogonal_init=True),
                  critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
     agent.PPO2_info()
@@ -233,13 +235,15 @@ if __name__ == '__main__':
         print('RELOADING......')
         '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
         # optPath = env.project_path + 'datasave/nets/att_good_1/'
-        optPath = env.project_path + 'datasave/nets/att_good_2/'
+        # optPath = env.project_path + 'datasave/nets/att_good_2/'
+        optPath = env.project_path + 'datasave/log/att_train_fuck_1/trainNum_2000/'
         agent.actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
         agent.critic.load_state_dict(torch.load(optPath + 'critic'))
         # agent.critic.init(True)
         '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
     
-    while True:
+    MAX_EPOCH = (action_std_init - min_action_std) / std_decay_step * std_decay_epoch + 1000
+    while t_epoch <= MAX_EPOCH:
         '''1. 初始化 buffer 索引和累计奖励记录'''
         buffer_index = 0
         '''1. 初始化 buffer 索引和累计奖励记录'''
@@ -315,24 +319,29 @@ if __name__ == '__main__':
             pd.DataFrame({'sumr_list': sumr_list}).to_csv(simulationPath + 'sumr_list.csv')
             print('    Testing finished...')
             print('    Go back to training...')
-        '''4. 每学习 10 次，测试一下'''
-        
-        '''5. 每学习 250 次，减小一次探索概率'''
-        if t_epoch % 250 == 0 and t_epoch > 0:
-            if agent.actor.std > 0.2:
-                agent.actor.std -= 0.05
-        '''5. 每学习 250 次，减小一次探索概率'''
-        
-        '''6. 每学习 50 次，保存一下 policy'''
-        if t_epoch % 50 == 0 and t_epoch > 0:
-            # 	average_test_r = agent.agent_evaluate(5)
-            test_num += 1
-            print('...check point save...')
             temp = simulationPath + 'trainNum_{}/'.format(t_epoch)
             os.mkdir(temp)
             time.sleep(0.01)
             agent.save_ac(msg=''.format(t_epoch), path=temp)
             env.save_state_norm(temp)
-        '''6. 每学习 50 次，保存一下 policy'''
+        '''4. 每学习 10 次，测试一下'''
+        
+        '''5. 每学习 250 次，减小一次探索概率'''
+        if t_epoch % std_decay_epoch == 0 and t_epoch > 0:
+            if agent.actor.std > min_action_std:
+                agent.actor.std -= std_decay_step
+        '''5. 每学习 250 次，减小一次探索概率'''
+        
+        # '''6. 每学习 50 次，保存一下 policy'''
+        # if t_epoch % 50 == 0 and t_epoch > 0:
+        #     # 	average_test_r = agent.agent_evaluate(5)
+        #     test_num += 1
+        #     print('...check point save...')
+        #     temp = simulationPath + 'trainNum_{}/'.format(t_epoch)
+        #     os.mkdir(temp)
+        #     time.sleep(0.01)
+        #     agent.save_ac(msg=''.format(t_epoch), path=temp)
+        #     env.save_state_norm(temp)
+        # '''6. 每学习 50 次，保存一下 policy'''
         
         t_epoch += 1

@@ -106,7 +106,7 @@ class UAV:
 		'''control'''
 		
 		'state limitation'
-		self.pos_min = np.array([-6, -6, 0])
+		self.pos_min = np.array([-6, -6, -6])
 		self.pos_max = np.array([6, 6, 6])
 		self.vel_min = np.array([-10, -10, -10])
 		self.vel_max = np.array([10, 10, 10])
@@ -118,7 +118,7 @@ class UAV:
 		self.z_max = self.pos_max[2]
 		self.z_min = self.pos_min[2]
 		
-		self.max_admissible_error = 3.0
+		self.max_admissible_error = 300
 		
 		self.phi_max = deg2rad(80)
 		self.theta_max = deg2rad(80)
@@ -191,10 +191,8 @@ class UAV:
 		
 		'''1. 无人机绕机体系旋转的角速度p q r 的微分方程'''
 		self.J0 = 0.  # 不考虑陀螺力矩，用于分析观测器的效果
-		dp = (-self.kr * _p - _q * _r * (self.J[2] - self.J[1]) + self.torque[0]
-			  - self.J0 * _q * (-self.w_rotor[0] - self.w_rotor[1] + self.w_rotor[2] + self.w_rotor[3])) / self.J[0] + dis[3]
-		dq = (-self.kr * _q - _p * _r * (self.J[0] - self.J[2]) + self.torque[1]
-			  - self.J0 * _p * (self.w_rotor[0] + self.w_rotor[1] - self.w_rotor[2] - self.w_rotor[3])) / self.J[1] + dis[4]
+		dp = (-self.kr * _p - _q * _r * (self.J[2] - self.J[1]) + self.torque[0]) / self.J[0] + dis[3]
+		dq = (-self.kr * _q - _p * _r * (self.J[0] - self.J[2]) + self.torque[1]) / self.J[1] + dis[4]
 		dr = (-self.kr * _r - _p * _q * (self.J[1] - self.J[0]) + self.torque[2]) / self.J[2] + dis[5]
 		# if dr == np.nan:
 		#     print(self.time)

@@ -32,6 +32,8 @@ class uav_pos_ctrl(UAV):
         self.dot_psi_d_all = np.array([])
         self.dot2_psi_d_all = np.array([])
         '''参考轨迹记录'''
+        
+        self.uncertainty = np.atleast_2d([])
     
     def att_control(self, ref: np.ndarray, dot_ref: np.ndarray, dot2_ref: np.ndarray, att_only: bool = True):
         e_rho = self.rho1() - ref
@@ -76,12 +78,12 @@ class uav_pos_ctrl(UAV):
         
         return phi_d, theta_d, uf  # TODO
     
-    def generate_action_4_uav(self, att_lim=None, dot_att_lim=None):
+    def generate_action_4_uav(self, att_lim=None, dot_att_lim=None, obs:np.ndarray=np.zeros(3)):
         eta_d = self.eta_d_all[self.n]
         dot_eta_d = self.dot_eta_d_all[self.n]
         dot2_eta_d = self.dot2_eta_d_all[self.n]
         
-        phi_d, theta_d, uf = self.pos_control(eta_d, dot_eta_d, dot2_eta_d, obs=np.zeros(3), att_lim=att_lim)
+        phi_d, theta_d, uf = self.pos_control(eta_d, dot_eta_d, dot2_eta_d, obs=obs, att_lim=att_lim)
         dot_phi_d = (phi_d - self.rho_d[0]) / self.dt
         if dot_att_lim is not None:
             if dot_phi_d > dot_att_lim[0]:
@@ -122,7 +124,8 @@ class uav_pos_ctrl(UAV):
                       'd_out_e_1st': np.zeros(3),
                       'state': np.hstack((np.zeros(6), self.uav_att_pqr_call_back()))}
         self.collector.record(data_block)
-        self.rk44(action=action, dis=np.zeros(6), n=1, att_only=False)
+        dis = np.concatenate((self.uncertainty[self.n], np.zeros(3)))
+        self.rk44(action=action, dis=dis, n=1, att_only=False)
     
     def generate_ref_pos_trajectory(self, _amplitude: np.ndarray, _period: np.ndarray, _bias_a: np.ndarray, _bias_phase: np.ndarray):
         """
@@ -197,6 +200,19 @@ class uav_pos_ctrl(UAV):
             self.z = self.z_min
         self.generate_ref_pos_trajectory(self.ref_pos_amplitude, self.ref_pos_period, self.ref_pos_bias_a, self.ref_pos_bias_phase)
     
+    def generate_uncertainty(self, is_ideal: bool = False):
+        N = int(self.time_max / self.dt) + 1
+        t = np.linspace(0, self.time_max, N)
+        if is_ideal:
+            self.uncertainty = np.zeros((N, 3))
+        else:
+            self.uncertainty = np.zeros((N, 3))
+            T = 3
+            w = 2 * np.pi / T
+            self.uncertainty[:, 0] = 1.5 * np.sin(w * t) + 0.2 * np.cos(3 * w * t)
+            self.uncertainty[:, 1] = 0.5 * np.cos(2 * w * t) + 0.15 * np.sin(w * t)
+            self.uncertainty[:, 2] = 0.8 * np.sin(2 * w * t) + 1.0 * np.cos(2 * w * t)
+        
     def generate_ref_pos(self, _pos: np.ndarray):
         N = int(self.time_max / self.dt) + 1
         self.eta_d_all = np.tile(_pos, (N, 1))
@@ -212,20 +228,20 @@ class uav_pos_ctrl(UAV):
         else:
             if is_random:
                 pos = np.array([
-                    np.random.uniform(self.x_min + 0.1, self.x_max - 0.1),
-                    np.random.uniform(self.y_min + 0.1, self.y_max - 0.1),
-                    np.random.uniform(self.z_min + 0.1, self.z_max - 0.1)
+                    np.random.uniform(self.x_min + 1, self.x_max - 1),
+                    np.random.uniform(self.y_min + 1, self.y_max - 1),
+                    np.random.uniform(self.z_min + 1, self.z_max - 1)
                 ])
             else:
-                pos = np.array([self.x_max, self.y_max, self.z_max])
+                pos = np.array([self.x_max - 1, self.y_max - 1, 1.5])
         if random_pos0:
-            self.x = np.random.uniform(low=self.x_min + 0.1, high=self.x_max - 0.1)
-            self.y = np.random.uniform(low=self.y_min + 0.1, high=self.y_max - 0.1)
-            self.z = np.random.uniform(low=self.z_min + 0.1, high=self.z_max - 0.1)
+            self.x = np.random.uniform(low=self.x_min + 1, high=self.x_max - 1)
+            self.y = np.random.uniform(low=self.y_min + 1, high=self.y_max - 1)
+            self.z = np.random.uniform(low=self.z_min + 1, high=self.z_max - 1)
         else:
             self.x = 0.
             self.y = 0.
-            self.z = 0.
+            self.z = 1.5
         self.generate_ref_pos(pos)
     
     def controller_reset(self):

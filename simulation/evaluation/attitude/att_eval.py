@@ -20,7 +20,7 @@ ENV = 'uav_att_ctrl_RL'
 ALGORITHM = 'PPO2'
 
 '''Parameter of the UAV'''
-DT = 0.02
+DT = 0.01
 uav_param = uav_param()
 uav_param.m = 0.8
 uav_param.g = 9.8
@@ -73,19 +73,14 @@ def reset_att_ctrl_param(flag: str):
 
 
 if __name__ == '__main__':
-    # log_dir = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/'
-    # if not os.path.exists(log_dir):
-    # 	os.makedirs(log_dir)
-    # simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
-    # os.mkdir(simulationPath)
-
     HEHE_FLAG = True
-
-    # opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/att_good_2/'
-    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_draw_only/trainNum_3300/'
-    # opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/log/att_train_4/trainNum_5200/'
-
     env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
+    
+    # opt_path = env.project_path + 'datasave/nets/att_good_2/'
+    # opt_path = env.project_path + 'datasave/log/att_train_fuck_1/trainNum_1930/'
+    opt_path = env.project_path + 'datasave/log/att_train_fuck_2/trainNum_150/'
+    # opt_path = env.project_path + 'datasave/log/att_train_4/trainNum_5200/'
+    
     env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
 
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
@@ -112,13 +107,13 @@ if __name__ == '__main__':
 
     agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
 
-    N = 1
+    N = 10
     success = 0
     fail = 0
     for i in range(N):
         reset_att_ctrl_param('optimal')
         p = np.array([[0.6, 0.6, 0.6], [4.5, 4.5, 4.5], [0, 0, 0]])
-        env.reset_env(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=None)
+        env.reset_env(random_att_trajectory=True, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param, outer_param=None)
         while not env.is_terminal:
             _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
             env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新

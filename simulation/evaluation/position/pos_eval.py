@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from environment.envs.uav_pos_ctrl.uav_pos_tracking_RL import uav_pos_tracking_RL, uav_param
 from environment.envs.UAV.FNTSMC import fntsmc_param
+from environment.envs.UAV.RobustDifferentatior_3rd import robust_differentiator_3rd as rd3
 
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
 
@@ -20,7 +21,7 @@ ENV = 'uav_pos_ctrl_RL'
 ALGORITHM = 'PPO2'
 
 '''Parameter of the UAV'''
-DT = 0.02
+DT = 0.01
 uav_param = uav_param()
 uav_param.m = 0.8
 uav_param.g = 9.8
@@ -118,7 +119,9 @@ if __name__ == '__main__':
     N = 1000
     success = 0
     fail = 0
+    USE_OBS = False
     for i in range(N):
+        obs = rd3(use_freq=True, omega=np.array([2, 2, 2]), dim=3, thresh=np.array([0.5, 0.5, 0.5]), dt=DT)
         reset_pos_ctrl_param('optimal')
         p = np.array([[0.6, 0.6, 0.6], [4.5, 4.5, 4.5], [0, 0, 0]])
         env.reset_env(random_pos_trajectory=True,
@@ -130,8 +133,13 @@ if __name__ == '__main__':
             _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
             env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
             
+            if USE_OBS:
+                syst_dynamic = -env.kt / env.m * env.dot_eta() + env.A()
+                obs_eta, _ = obs.observe(x=env.eta(), syst_dynamic=syst_dynamic)
+            else:
+                obs_eta = np.zeros(3)
             dot_att_lim = [np.pi / 2, np.pi / 2, np.pi / 2]
-            action = env.generate_action_4_uav(att_lim=[np.pi / 3, np.pi / 3, np.pi], dot_att_lim=dot_att_lim)
+            action = env.generate_action_4_uav(att_lim=[np.pi / 3, np.pi / 3, np.pi], dot_att_lim=dot_att_lim, obs=obs_eta)
             env.step_update(action=action)
             # env.visualization()
         

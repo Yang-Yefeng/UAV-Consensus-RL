@@ -9,12 +9,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from environment.envs.uav_pos_ctrl.uav_pos_tracking_RL import uav_pos_tracking_RL, uav_param
 from environment.envs.UAV.FNTSMC import fntsmc_param
+from environment.envs.UAV.RobustDifferentatior_3rd import robust_differentiator_3rd as rd3
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
 from utils.classes import *
 from utils.functions import *
 
 '''Parameter of the UAV'''
-DT = 0.02
+DT = 0.01
 uav_param = uav_param()
 uav_param.m = 0.8
 uav_param.g = 9.8
@@ -80,10 +81,13 @@ def reset_pos_ctrl_param(flag: str):
 if __name__ == '__main__':
     HEHE_FLAG = True
     
-    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../datasave/nets/pos_maybe_good_3/'
+    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../../datasave/nets/pos_maybe_good_3/'
     
     env = uav_pos_tracking_RL(uav_param, att_ctrl_param, pos_ctrl_param)
     env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
+    env.Q_pos = np.array([1., 1., 1.])
+    env.Q_vel = np.array([0.1, 0.1, 0.1])
+    env.R = np.array([0.0, 0.0, 0.0])
     
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     ppo_msg = {'gamma': 0.99,
@@ -115,17 +119,18 @@ if __name__ == '__main__':
     T = np.linspace(5, 8, T_num)
     _i = 0
     
-    cost = np.zeros((A_num * T_num, 4))  # a, t, r1 ,r2
+    cost = np.zeros((A_num * T_num, 6))  # a, t, r1 ,r2
     for a in A:
         for t in T:
             p = [[a, a, a, 0], [t, t, t, t], [np.pi / 2, 0, 0, 0], [0, 0, 0, 0]]
-            '''1. RL'''
+            '''1. RL no obs'''
             reset_pos_ctrl_param('optimal')
             env.reset_env(random_pos_trajectory=True,
                           random_pos0=False,
                           yaw_fixed=False,
                           new_pos_ctrl_param=pos_ctrl_param,
-                          outer_param=p)
+                          outer_param=p,
+                          is_ideal=False)
             while not env.is_terminal:
                 _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
                 env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
@@ -135,25 +140,68 @@ if __name__ == '__main__':
                 env.step_update(action=action)
             r1 = env.sum_reward
             
-            '''2. 传统'''
+            '''2. 传统 no obs'''
             reset_pos_ctrl_param('optimal')
             env.reset_env(random_pos_trajectory=True,
                           random_pos0=False,
                           yaw_fixed=False,
                           new_pos_ctrl_param=pos_ctrl_param,
-                          outer_param=p)
+                          outer_param=p,
+                          is_ideal=False)
             while not env.is_terminal:
                 dot_att_lim = [np.pi / 2, np.pi / 2, np.pi / 2]
                 action = env.generate_action_4_uav(att_lim=[np.pi / 3, np.pi / 3, np.pi], dot_att_lim=dot_att_lim)
                 env.step_update(action=action)
             r2 = env.sum_reward
-            cost[_i, :] = np.array([a, t, r1, r2])
+            
+            '''3. RL obs'''
+            reset_pos_ctrl_param('optimal')
+            obs = rd3(use_freq=True, omega=np.array([2, 2, 2]), dim=3, thresh=np.array([0.5, 0.5, 0.5]), dt=DT)
+            obs.reset()
+            env.reset_env(random_pos_trajectory=True,
+                          random_pos0=False,
+                          yaw_fixed=False,
+                          new_pos_ctrl_param=pos_ctrl_param,
+                          outer_param=p,
+                          is_ideal=False)
+            while not env.is_terminal:
+                _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
+                env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
+                
+                syst_dynamic = -env.kt / env.m * env.dot_eta() + env.A()
+                obs_eta, _ = obs.observe(x=env.eta(), syst_dynamic=syst_dynamic)
+                
+                dot_att_lim = [np.pi / 2, np.pi / 2, np.pi / 2]
+                action = env.generate_action_4_uav(att_lim=[np.pi / 3, np.pi / 3, np.pi], dot_att_lim=dot_att_lim, obs=obs_eta)
+                env.step_update(action=action)
+            r3 = env.sum_reward
+            
+            '''4. 传统 obs'''
+            reset_pos_ctrl_param('optimal')
+            obs = rd3(use_freq=True, omega=np.array([2, 2, 2]), dim=3, thresh=np.array([0.5, 0.5, 0.5]), dt=DT)
+            obs.reset()
+            env.reset_env(random_pos_trajectory=True,
+                          random_pos0=False,
+                          yaw_fixed=False,
+                          new_pos_ctrl_param=pos_ctrl_param,
+                          outer_param=p,
+                          is_ideal=False)
+            while not env.is_terminal:
+                syst_dynamic = -env.kt / env.m * env.dot_eta() + env.A()
+                obs_eta, _ = obs.observe(x=env.eta(), syst_dynamic=syst_dynamic)
+                
+                dot_att_lim = [np.pi / 2, np.pi / 2, np.pi / 2]
+                action = env.generate_action_4_uav(att_lim=[np.pi / 3, np.pi / 3, np.pi], dot_att_lim=dot_att_lim, obs=obs_eta)
+                env.step_update(action=action)
+            r4 = env.sum_reward
+            
+            cost[_i, :] = np.array([a, t, r1, r2, r3, r4])
             _i += 1
             if _i % 50 == 0:
                 print(_i)
-            print('r1:', r1, 'r2', r2)
+            print('r1: %.2f   r2: %.2f   r3: %.2f   r4: %.2f' % (r1, r2, r3, r4))
             # env.visualization()
     
     print('Finish...')
     save_path = env.project_path + '/plot/3D_surface/position/'
-    pd.DataFrame(cost, columns=['A', 'T', 'r1', 'r2']).to_csv(save_path + 'pos_cost_surface.csv', sep=',', index=False)
+    pd.DataFrame(cost, columns=['A', 'T', 'rl_no_obs', 'smc_no_obs', 'rl_obs', 'smc_obs']).to_csv(save_path + 'pos_cost_surface.csv', sep=',', index=False)

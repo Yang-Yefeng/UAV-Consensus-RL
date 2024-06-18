@@ -476,7 +476,8 @@ class uav_pos_tracking_RL(rl_base, uav_pos_ctrl):
                   random_pos0: bool = False,
                   yaw_fixed: bool = False,
                   new_pos_ctrl_param: fntsmc_param = None,
-                  outer_param: list = None
+                  outer_param: list = None,
+                  is_ideal:bool=False
                   ):
         self.reset_uav()
         self.collector_reset()
@@ -484,7 +485,7 @@ class uav_pos_tracking_RL(rl_base, uav_pos_ctrl):
                                             random_pos0=random_pos0,
                                             yaw_fixed=yaw_fixed,
                                             outer_param=outer_param)
-        
+        self.generate_uncertainty(is_ideal=is_ideal)
         self.reward = 0.
         self.sum_reward = 0.
         self.is_terminal = False

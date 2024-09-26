@@ -1,5 +1,6 @@
+import os
+
 from utils.functions import *
-import sys, os
 
 
 class uav_param:

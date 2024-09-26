@@ -124,7 +124,12 @@ class uav_pos_ctrl(UAV):
                       'd_out_e_1st': np.zeros(3),
                       'state': np.hstack((np.zeros(6), self.uav_att_pqr_call_back()))}
         self.collector.record(data_block)
-        dis = np.concatenate((self.uncertainty[self.n], np.zeros(3)))
+        # print(np.size(self.uncertainty[self.n]))
+        if np.size(self.uncertainty[self.n]) == 0:
+            dis = np.zeros(6)
+        else:
+            dis = np.concatenate((self.uncertainty[self.n], np.zeros(3)))
+        
         self.rk44(action=action, dis=dis, n=1, att_only=False)
     
     def generate_ref_pos_trajectory(self, _amplitude: np.ndarray, _period: np.ndarray, _bias_a: np.ndarray, _bias_phase: np.ndarray):

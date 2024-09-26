@@ -52,10 +52,10 @@ att_ctrl_param = fntsmc_param(
 
 '''Parameter list of the position controller'''
 pos_ctrl_param = fntsmc_param(
-    k1=np.array([0.3, 0.3, 1.0]),
+    k1=np.array([0.6, 0.6, 1.0]),
     k2=np.array([0.5, 0.5, 1]),
-    k3=np.array([0.05, 0.05, 0.05]),        # 补偿观测器的，小点就行
-    k4=np.array([6, 6, 6]),
+    k3=np.array([2, 2, 2]),        # 补偿观测器的，小点就行
+    k4=np.array([3, 3, 3]),
     alpha1=np.array([1.01, 1.01, 1.01]),
     alpha2=np.array([1.01, 1.01, 1.01]),
     dim=3,
@@ -65,13 +65,13 @@ pos_ctrl_param = fntsmc_param(
 
 if __name__ == '__main__':
 	env = uav_pos_stabilize_RL(uav_param, att_ctrl_param, pos_ctrl_param)
-	NUM_OF_SIMULATION = 10
+	NUM_OF_SIMULATION = 5
 	cnt = 0
 	success = 0
 	while cnt < NUM_OF_SIMULATION:
 		'''1. reset and generate reference signal'''
 		p = [[2, 2, 2, deg2rad(70)], [5, 5, 5, 5], [0, 0, 0, 0], [0, 0, 0, 0]]
-		env.reset_env(is_random=False, random_pos0=False, new_pos_ctrl_param=None, outer_param=None)
+		env.reset_env(is_random=True, random_pos0=True, new_pos_ctrl_param=None, outer_param=None)
 		if cnt % 1 == 0:
 			print('Current:', cnt)
 		

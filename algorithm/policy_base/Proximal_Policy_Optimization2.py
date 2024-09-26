@@ -96,9 +96,9 @@ class Proximal_Policy_Optimization2:
 				gae = delta + self.gamma * self.lmd * gae * (1.0 - d)
 				adv.insert(0, gae)
 			adv = torch.tensor(adv, dtype=torch.float).view(-1, 1)
-			v_target = adv + vs
-			if self.use_adv_norm:  # Trick 1:advantage normalization
+			if self.use_adv_norm:  # Trick 1:advantage normalization		# 可以放到 v_target = adv + vs 之后
 				adv = ((adv - adv.mean()) / (adv.std() + 1e-5))
+			v_target = adv + vs
 
 		if self.using_mini_batch:
 			for _ in range(self.K_epochs):  # 每次的轨迹数据学习 K_epochs 次

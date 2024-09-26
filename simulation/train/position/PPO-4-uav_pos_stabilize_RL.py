@@ -41,14 +41,14 @@ uav_param.time_max = 10
 
 '''Parameter list of the attitude controller'''
 att_ctrl_param = fntsmc_param(
-    # k1=np.array([6.00810648, 6.80311651, 13.47563418]).astype(float),			# 手调: 4 4 15
-    # k2=np.array([2.04587905, 1.60844957, 0.98401018]).astype(float),			# 手调: 1 1 1.5
-    # k3=np.array([0.05, 0.05, 0.05]).astype(float),
-    # k4=np.array([9.85776965, 10.91725924, 13.90115023]).astype(float),       # 要大     手调: 5 4 5
-    k1=np.array([4, 4, 15]).astype(float),
-    k2=np.array([1, 1, 1.5]).astype(float),
+    k1=np.array([6.00810648, 6.80311651, 13.47563418]).astype(float),			# 手调: 4 4 15
+    k2=np.array([2.04587905, 1.60844957, 0.98401018]).astype(float),			# 手调: 1 1 1.5
     k3=np.array([0.05, 0.05, 0.05]).astype(float),
-    k4=np.array([5, 4, 5]).astype(float),  # 要大
+    k4=np.array([9.85776965, 10.91725924, 13.90115023]).astype(float),       # 要大     手调: 5 4 5
+    # k1=np.array([4, 4, 15]).astype(float),
+    # k2=np.array([1, 1, 1.5]).astype(float),
+    # k3=np.array([0.05, 0.05, 0.05]).astype(float),
+    # k4=np.array([5, 4, 5]).astype(float),  # 要大
     alpha1=np.array([1.01, 1.01, 1.01]).astype(float),
     alpha2=np.array([1.01, 1.01, 1.01]).astype(float),
     dim=3,
@@ -62,10 +62,10 @@ att_ctrl_param = fntsmc_param(
 
 
 pos_ctrl_param = fntsmc_param(
-    k1=np.array([0.3, 0.3, 1.0]),
+    k1=np.array([0.6, 0.6, 1.0]),
     k2=np.array([0.5, 0.5, 1]),
-    k3=np.array([0.05, 0.05, 0.05]),        # 补偿观测器的，小点就行
-    k4=np.array([6, 6, 6]),
+    k3=np.array([2, 2, 2]),        # 补偿观测器的，小点就行
+    k4=np.array([3, 3, 3]),
     alpha1=np.array([1.01, 1.01, 1.01]),
     alpha2=np.array([1.01, 1.01, 1.01]),
     dim=3,
@@ -88,9 +88,9 @@ def reset_pos_ctrl_param(flag: str):
         pos_ctrl_param.k2 = np.random.random(3)
         pos_ctrl_param.k4 = np.random.random(3)
     else:  # optimal 手调的
-        pos_ctrl_param.k1 = np.array([0.3, 0.3, 1.0])
+        pos_ctrl_param.k1 = np.array([0.6, 0.6, 1.0])
         pos_ctrl_param.k2 = np.array([0.5, 0.5, 1])
-        pos_ctrl_param.k4 = np.array([6, 6, 6])
+        pos_ctrl_param.k4 = np.array([3, 3, 3])
 
 
 class PPOActor_Gaussian(nn.Module):
@@ -193,7 +193,7 @@ class PPOCritic(nn.Module):
 
 
 if __name__ == '__main__':
-    RETRAIN = True  # 基于之前的训练结果重新训练
+    RETRAIN = False  # 基于之前的训练结果重新训练
     HEHE_FLAG = True
     
     env = uav_pos_stabilize_RL(uav_param, att_ctrl_param, pos_ctrl_param)
@@ -212,8 +212,8 @@ if __name__ == '__main__':
                'buffer_size': int(env.time_max / env.dt) * 2,
                'state_dim': env_test.state_dim,
                'action_dim': env_test.action_dim,
-               'a_lr': 1e-5,
-               'c_lr': 1e-4,
+               'a_lr': 1e-4,
+               'c_lr': 1e-3,
                'set_adam_eps': True,
                'lmd': 0.95,
                'use_adv_norm': True,
@@ -271,7 +271,7 @@ if __name__ == '__main__':
                 reset_pos_ctrl_param('zero')
                 print('Sumr:  ', env.sum_reward)
                 sumr_list.append(env.sum_reward)
-                env.reset_env(is_random=True, random_pos0=False, new_pos_ctrl_param=None, outer_param=None)
+                env.reset_env(is_random=True, random_pos0=True, new_pos_ctrl_param=None, outer_param=None)
             else:
                 env.current_state = env.next_state.copy()
                 s = env.current_state_norm(env.current_state, update=True)

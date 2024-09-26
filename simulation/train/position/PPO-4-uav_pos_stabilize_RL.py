@@ -315,7 +315,10 @@ if __name__ == '__main__':
             for i in range(n):
                 reset_pos_ctrl_param('optimal')
                 p = [[2, 2, 2, deg2rad(70)], [5, 5, 5, 5], [0, 0, 0, 0], [0, 0, 0, 0]]
-                env_test.reset_env(is_random=False, random_pos0=False, new_pos_ctrl_param=pos_ctrl_param, outer_param=None)
+                env_test.reset_env(is_random=True,
+                                   random_pos0=True,
+                                   new_pos_ctrl_param=pos_ctrl_param,
+                                   outer_param=None)
                 while not env_test.is_terminal:
                     _a = agent.evaluate(env.current_state_norm(env_test.current_state, update=False))
                     env_test.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新

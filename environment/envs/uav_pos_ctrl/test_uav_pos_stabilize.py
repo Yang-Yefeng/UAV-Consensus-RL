@@ -78,7 +78,8 @@ if __name__ == '__main__':
 		'''2. control'''
 		while not env.is_terminal:
 			dot_att_lim = [np.pi / 2, np.pi / 2, np.pi / 2]
-			action = env.generate_action_4_uav(att_lim=[np.pi / 3, np.pi / 3, np.pi], dot_att_lim=dot_att_lim)
+			pos_att_lim = [np.pi / 3, np.pi / 3, np.pi]
+			action = env.generate_action_4_uav(att_lim=pos_att_lim, dot_att_lim=dot_att_lim)
 			env.step_update(action=action)
 			
 			env.image = env.image_copy.copy()

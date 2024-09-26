@@ -229,7 +229,7 @@ class uav_pos_ctrl(UAV):
     
     def generate_random_ref_pos(self, is_random: bool, random_pos0: bool, outer_param=None):
         if outer_param is not None:
-            pos = np.array(outer_param[0])
+            pos = np.array(outer_param[0][0:3])
         else:
             if is_random:
                 pos = np.array([

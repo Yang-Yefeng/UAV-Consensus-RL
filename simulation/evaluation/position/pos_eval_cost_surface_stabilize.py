@@ -108,9 +108,9 @@ if __name__ == '__main__':
                'max_train_steps': int(5e6),
                'using_mini_batch': False}
     
-    x_num = 21
-    y_num = 21
-    z_num = 21
+    x_num = 11
+    y_num = 11
+    z_num = 11
     X = np.linspace(env.x_min + 1, env.x_max - 1, x_num)
     Y = np.linspace(env.y_min + 1, env.y_max - 1, y_num)
     Z = np.linspace(env.z_min + 1, env.z_max - 1, z_num)
@@ -120,11 +120,13 @@ if __name__ == '__main__':
     if not os.path.exists(save_path):
         os.mkdir(save_path)
     
-    for i in range(NN_c):
+    for i in range(10):
+        i += 0
+        print('Start: ', i + 1)
         opt_str = '/../../../datasave/log/stabilize_stage1/trainNum_' + str(10 * (i + 1)) + '/'
         opt_path = os.path.dirname(os.path.abspath(__file__)) + opt_str
         actor = PPOActor_Gaussian(state_dim=env.state_dim, action_dim=env.action_dim)
-        actor.load_state_dict(torch.load(opt_path + 'actor'))
+        actor.load_state_dict(torch.load(opt_path + 'actor', weights_only=True))
         agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
         
         env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
@@ -153,4 +155,4 @@ if __name__ == '__main__':
                     cost[__i][:] = np.array([_x, _y, _z, r])
                     __i += 1
         print('Finish: ', i + 1)
-        pd.DataFrame(cost, columns=['x_d', 'y_d', 'z_d', 'r']).to_csv(save_path + '/stabilize_cost_surface_' + str(10 * (i + 1)) + '.csv', sep=',', index=False)
+        pd.DataFrame(cost, columns=['x_d', 'y_d', 'z_d', 'r']).to_csv(save_path + '/cost_' + str(10 * (i + 1)) + '.csv', sep=',', index=False)

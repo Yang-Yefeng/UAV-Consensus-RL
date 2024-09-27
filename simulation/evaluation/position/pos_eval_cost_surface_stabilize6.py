@@ -10,15 +10,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 from environment.envs.uav_pos_ctrl.uav_pos_stabilize_RL import uav_pos_stabilize_RL, uav_param
 from environment.envs.UAV.FNTSMC import fntsmc_param
 from environment.envs.UAV.RobustDifferentatior_3rd import robust_differentiator_3rd as rd3
-
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
-
 from utils.classes import *
 from utils.functions import *
-
-timestep = 0
-ENV = 'uav_pos_ctrl_RL'
-ALGORITHM = 'PPO2'
 
 '''Parameter of the UAV'''
 DT = 0.01
@@ -91,12 +85,10 @@ def reset_pos_ctrl_param(flag: str):
 if __name__ == '__main__':
     HEHE_FLAG = True
     
-    opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../../datasave/log/stabilize_stage1/trainNum_560/'
-    # opt_path = os.path.dirname(os.path.abspath(__file__)) + '/../../../datasave/nets/pos_maybe_good_3/'
-    
     env = uav_pos_stabilize_RL(uav_param, att_ctrl_param, pos_ctrl_param)
-    env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
-    
+    env.Q_pos = np.array([1., 1., 1.])
+    env.Q_vel = np.array([0.1, 0.1, 0.1])
+    env.R = np.array([0.0, 0.0, 0.0])
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     ppo_msg = {'gamma': 0.99,
                'K_epochs': 10,
@@ -116,37 +108,51 @@ if __name__ == '__main__':
                'max_train_steps': int(5e6),
                'using_mini_batch': False}
     
-    actor = PPOActor_Gaussian(state_dim=env.state_dim, action_dim=env.action_dim)
-    actor.load_state_dict(torch.load(opt_path + 'actor', weights_only=True))
+    x_num = 11
+    y_num = 11
+    z_num = 11
+    X = np.linspace(env.x_min + 1, env.x_max - 1, x_num)
+    Y = np.linspace(env.y_min + 1, env.y_max - 1, y_num)
+    Z = np.linspace(env.z_min + 1, env.z_max - 1, z_num)
     
-    agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
+    NN_c = 199
+    save_path = os.path.dirname(os.path.abspath(__file__))  + '/test_cost_surface'
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
     
-    N = 1000
-    success = 0
-    fail = 0
-    USE_OBS = False
-    for i in range(N):
-        obs = rd3(use_freq=True, omega=np.array([2, 2, 2]), dim=3, thresh=np.array([0.5, 0.5, 0.5]), dt=DT)
-        reset_pos_ctrl_param('optimal')
-        p = np.array([[0.6, 0.6, 0.6], [4.5, 4.5, 4.5], [0, 0, 0]])
-        env.reset_env(is_random=True, random_pos0=True, new_pos_ctrl_param=None, outer_param=None, is_ideal=False)
-        while not env.is_terminal:
-            _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
-            env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
-            
-            if USE_OBS:
-                syst_dynamic = -env.kt / env.m * env.dot_eta() + env.A()
-                obs_eta, _ = obs.observe(x=env.eta(), syst_dynamic=syst_dynamic)
-            else:
-                obs_eta = np.zeros(3)
-            dot_att_lim = [np.pi / 2, np.pi / 2, np.pi / 2]
-            action = env.generate_action_4_uav(att_lim=[np.pi / 3, np.pi / 3, np.pi], dot_att_lim=dot_att_lim, obs=obs_eta)
-            env.step_update(action=action)
-            env.visualization()
+    for i in range(10):
+        i += 50
+        print('Start: ', i + 1)
+        opt_str = '/../../../datasave/log/stabilize_stage1/trainNum_' + str(10 * (i + 1)) + '/'
+        opt_path = os.path.dirname(os.path.abspath(__file__)) + opt_str
+        actor = PPOActor_Gaussian(state_dim=env.state_dim, action_dim=env.action_dim)
+        actor.load_state_dict(torch.load(opt_path + 'actor', weights_only=True))
+        agent = PPO2(env_msg=env_msg, ppo_msg=ppo_msg, actor=actor)
         
-        if env.terminal_flag == 2:  # 位置出界
-            fail += 1
-        else:
-            success += 1
-        print('Evaluating %.0f | Reward: %.2f ' % (i, env.sum_reward))
-    print('Success rate:', success / N)
+        env.load_norm_normalizer_from_file(opt_path, 'state_norm.csv')
+        cost = np.zeros((x_num * y_num * z_num, 4))
+        __i = 0
+        for _x in X:
+            for _y in Y:
+                for _z in Z:
+                    p = [[0, 0, 0, 0], [1, 1, 1, 1], [np.pi / 2, 0, 0, 0], [_x, _y, _z, 0]]     # 参考轨迹的参数，这里只用最后一组
+                    reset_pos_ctrl_param('optimal')
+                    obs = rd3(use_freq=True, omega=np.array([2, 2, 2]), dim=3, thresh=np.array([0.5, 0.5, 0.5]), dt=DT)
+                    obs.reset()
+                    env.reset_env(is_random=False, random_pos0=False, new_pos_ctrl_param=None, outer_param=p, is_ideal=False)
+                    while not env.is_terminal:
+                        _a = agent.evaluate(env.current_state_norm(env.current_state, update=False))
+                        env.get_param_from_actor(_a, hehe_flag=HEHE_FLAG)  # 将控制器参数更新
+                        
+                        syst_dynamic = -env.kt / env.m * env.dot_eta() + env.A()
+                        obs_eta, _ = obs.observe(x=env.eta(), syst_dynamic=syst_dynamic)
+                        
+                        dot_att_lim = [np.pi / 2, np.pi / 2, np.pi / 2]
+                        att_lim = [np.pi / 3, np.pi / 3, np.pi]
+                        action = env.generate_action_4_uav(att_lim=att_lim, dot_att_lim=dot_att_lim, obs=obs_eta)
+                        env.step_update(action=action)
+                    r = env.sum_reward
+                    cost[__i][:] = np.array([_x, _y, _z, r])
+                    __i += 1
+        print('Finish: ', i + 1)
+        pd.DataFrame(cost, columns=['x_d', 'y_d', 'z_d', 'r']).to_csv(save_path + '/cost_' + str(10 * (i + 1)) + '.csv', sep=',', index=False)

@@ -151,8 +151,8 @@ if __name__ == '__main__':
                         att_lim = [np.pi / 3, np.pi / 3, np.pi]
                         action = env.generate_action_4_uav(att_lim=att_lim, dot_att_lim=dot_att_lim, obs=obs_eta)
                         env.step_update(action=action)
-                    r = env.sum_reward
-                    cost[__i][:] = np.array([_x, _y, _z, r])
-                    __i += 1
+                        r = env.sum_reward
+                        cost[__i][:] = np.array([_x, _y, _z, r])
+                        __i += 1
         print('Finish: ', i + 1)
         pd.DataFrame(cost, columns=['x_d', 'y_d', 'z_d', 'r']).to_csv(save_path + '/cost_' + str(10 * (i + 1)) + '.csv', sep=',', index=False)

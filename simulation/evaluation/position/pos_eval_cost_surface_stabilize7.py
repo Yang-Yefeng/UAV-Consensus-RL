@@ -121,7 +121,7 @@ if __name__ == '__main__':
         os.mkdir(save_path)
     
     for i in range(10):
-        i += 50
+        i += 60
         print('Start: ', i + 1)
         opt_str = '/../../../datasave/log/stabilize_stage1/trainNum_' + str(10 * (i + 1)) + '/'
         opt_path = os.path.dirname(os.path.abspath(__file__)) + opt_str
